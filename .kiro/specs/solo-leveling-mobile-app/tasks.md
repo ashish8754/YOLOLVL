@@ -73,52 +73,52 @@
     - Implement tutorial completion tracking and app initialization flow
     - _Requirements: 1.4, 1.5_
 
-- [-] 6. State Management and Providers
+- [x] 6. State Management and Providers
   - [x] 6.1 Create Provider classes for state management
     - Implement UserProvider with ChangeNotifier for level, EXP, and stats
     - Create ActivityProvider for logging state and history management
     - Add SettingsProvider for app configuration and theme management
     - _Requirements: 9.1, 9.2, 9.6_
 
-  - [-] 6.2 Implement app lifecycle and degradation checking
+  - [x] 6.2 Implement app lifecycle and degradation checking
     - Add app resume detection to trigger degradation checks
     - Create background processing for pending stat reductions
     - Implement state synchronization between services and UI providers
     - _Requirements: 6.5, 10.1_
 
-- [ ] 7. Dashboard and Main UI Components
-  - [ ] 7.1 Build dashboard screen with level and EXP display
+- [x] 7. Dashboard and Main UI Components
+  - [x] 7.1 Build dashboard screen with level and EXP display
     - Create level display widget with current level and EXP progress bar
     - Implement EXP threshold calculation and percentage display
     - Add visual styling with dark fantasy theme colors
     - _Requirements: 2.1, 11.2_
 
-  - [ ] 7.2 Create stats overview chart widget
+  - [x] 7.2 Create stats overview chart widget
     - Implement bar chart using fl_chart library for 6 stats display
     - Add proper scaling, colors, and labels for each stat type
     - Create responsive layout that works on different screen sizes
     - _Requirements: 2.2, 11.4_
 
-  - [ ] 7.3 Add daily summary and streak tracking
+  - [x] 7.3 Add daily summary and streak tracking
     - Implement streak calculation logic for consecutive activity days
     - Create degradation warning display for missed activities
     - Add recent activity summary with count and types
     - _Requirements: 2.3_
 
-- [ ] 8. Activity Logging UI and User Interaction
-  - [ ] 8.1 Create activity logging modal/screen
+- [x] 8. Activity Logging UI and User Interaction
+  - [x] 8.1 Create activity logging modal/screen
     - Build dropdown/picker for 10 fixed activity types
     - Implement duration input with default 60 minutes and validation
     - Add expected gains preview (stat increments and EXP)
     - _Requirements: 3.1, 3.2_
 
-  - [ ] 8.2 Add immediate feedback and animations
+  - [x] 8.2 Add immediate feedback and animations
     - Create floating "+0.06" stat gain animations with fade-out
     - Implement level-up celebration animation with confetti/glow effects
     - Add haptic feedback and visual confirmation for successful logging
     - _Requirements: 3.4, 4.5_
 
-- [ ] 9. History and Progress Visualization
+- [-] 9. History and Progress Visualization
   - [ ] 9.1 Build activity history screen with filtering
     - Create scrollable list/calendar view of past activity logs
     - Implement activity type filtering and date range selection

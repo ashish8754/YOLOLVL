@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 
 part 'enums.g.dart';
@@ -79,6 +80,58 @@ enum ActivityType {
         return ActivityCategory.other;
     }
   }
+
+  /// Get icon for the activity type
+  IconData get icon {
+    switch (this) {
+      case ActivityType.workoutWeights:
+        return Icons.fitness_center;
+      case ActivityType.workoutCardio:
+        return Icons.directions_run;
+      case ActivityType.workoutYoga:
+        return Icons.self_improvement;
+      case ActivityType.studySerious:
+        return Icons.school;
+      case ActivityType.studyCasual:
+        return Icons.menu_book;
+      case ActivityType.meditation:
+        return Icons.spa;
+      case ActivityType.socializing:
+        return Icons.people;
+      case ActivityType.quitBadHabit:
+        return Icons.block;
+      case ActivityType.sleepTracking:
+        return Icons.bedtime;
+      case ActivityType.dietHealthy:
+        return Icons.restaurant;
+    }
+  }
+
+  /// Get color for the activity type
+  Color get color {
+    switch (this) {
+      case ActivityType.workoutWeights:
+        return const Color(0xFFE74C3C); // Red
+      case ActivityType.workoutCardio:
+        return const Color(0xFFE67E22); // Orange
+      case ActivityType.workoutYoga:
+        return const Color(0xFF9B59B6); // Purple
+      case ActivityType.studySerious:
+        return const Color(0xFF3498DB); // Blue
+      case ActivityType.studyCasual:
+        return const Color(0xFF5DADE2); // Light Blue
+      case ActivityType.meditation:
+        return const Color(0xFF1ABC9C); // Teal
+      case ActivityType.socializing:
+        return const Color(0xFFF39C12); // Yellow
+      case ActivityType.quitBadHabit:
+        return const Color(0xFF95A5A6); // Gray
+      case ActivityType.sleepTracking:
+        return const Color(0xFF6C5CE7); // Indigo
+      case ActivityType.dietHealthy:
+        return const Color(0xFF00B894); // Green
+    }
+  }
 }
 
 /// Enum representing different stat types
@@ -135,6 +188,24 @@ enum StatType {
         return '🎯';
       case StatType.charisma:
         return '✨';
+    }
+  }
+
+  /// Get color for the stat type
+  Color get color {
+    switch (this) {
+      case StatType.strength:
+        return const Color(0xFFE74C3C); // Red
+      case StatType.agility:
+        return const Color(0xFF9B59B6); // Purple
+      case StatType.endurance:
+        return const Color(0xFF27AE60); // Green
+      case StatType.intelligence:
+        return const Color(0xFF3498DB); // Blue
+      case StatType.focus:
+        return const Color(0xFFF39C12); // Orange
+      case StatType.charisma:
+        return const Color(0xFFE91E63); // Pink
     }
   }
 }

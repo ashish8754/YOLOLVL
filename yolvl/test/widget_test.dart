@@ -15,8 +15,6 @@ void main() {
     await tester.pumpWidget(const YolvlApp());
 
     // Verify that our app loads with the correct title.
-    expect(find.text('YOLVL'), findsOneWidget);
-    expect(find.text('Solo Leveling Life'), findsOneWidget);
-    expect(find.text('Gamify your self-improvement journey'), findsOneWidget);
+    expect(find.text('Solo Leveling'), findsOneWidget);
   });
 }

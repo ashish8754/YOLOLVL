@@ -13,12 +13,8 @@ class HiveConfig {
 
   /// Initialize Hive with proper configuration
   static Future<void> initialize() async {
-    // Initialize Hive for Flutter
+    // Initialize Hive for Flutter (this handles path setup automatically)
     await Hive.initFlutter();
-    
-    // Get application documents directory for storage
-    final appDocumentDir = await getApplicationDocumentsDirectory();
-    Hive.init(appDocumentDir.path);
     
     // Register adapters for all models
     _registerAdapters();
@@ -42,9 +38,9 @@ class HiveConfig {
   /// Open all required Hive boxes
   static Future<void> _openBoxes() async {
     try {
-      await Hive.openBox(userBoxName);
-      await Hive.openBox(activityBoxName);
-      await Hive.openBox(settingsBoxName);
+      await Hive.openBox<User>(userBoxName);
+      await Hive.openBox<ActivityLog>(activityBoxName);
+      await Hive.openBox<Settings>(settingsBoxName);
     } catch (e) {
       throw Exception('Failed to open Hive boxes: $e');
     }
@@ -56,6 +52,14 @@ class HiveConfig {
       throw Exception('Box $boxName is not open');
     }
     return Hive.box(boxName);
+  }
+
+  /// Get a typed box by name
+  static Box<T> getTypedBox<T>(String boxName) {
+    if (!Hive.isBoxOpen(boxName)) {
+      throw Exception('Box $boxName is not open');
+    }
+    return Hive.box<T>(boxName);
   }
 
   /// Close all boxes (for cleanup)

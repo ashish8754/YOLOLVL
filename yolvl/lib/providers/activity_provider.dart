@@ -1,13 +1,16 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import '../models/activity_log.dart';
 import '../models/enums.dart';
 import '../services/activity_service.dart';
+import '../services/app_lifecycle_service.dart';
 import '../repositories/activity_repository.dart';
 import '../repositories/user_repository.dart';
 
 /// Provider for managing activity logging state and history
 class ActivityProvider extends ChangeNotifier {
   final ActivityService _activityService;
+  final AppLifecycleService? _appLifecycleService;
   
   List<ActivityLog> _activityHistory = [];
   List<ActivityLog> _todaysActivities = [];
@@ -24,11 +27,17 @@ class ActivityProvider extends ChangeNotifier {
   String _activityNotes = '';
   ActivityGainPreview? _gainPreview;
 
-  ActivityProvider({ActivityService? activityService})
-      : _activityService = activityService ?? ActivityService(
+  ActivityProvider({
+    ActivityService? activityService,
+    AppLifecycleService? appLifecycleService,
+  }) : _activityService = activityService ?? ActivityService(
           activityRepository: ActivityRepository(),
           userRepository: UserRepository(),
-        );
+        ),
+       _appLifecycleService = appLifecycleService {
+    // Listen to app lifecycle changes if service is provided
+    _appLifecycleService?.addListener(_onAppLifecycleChanged);
+  }
 
   // Getters
   List<ActivityLog> get activityHistory => List.unmodifiable(_activityHistory);
@@ -333,6 +342,12 @@ class ActivityProvider extends ChangeNotifier {
     _clearError();
   }
 
+  @override
+  void dispose() {
+    _appLifecycleService?.removeListener(_onAppLifecycleChanged);
+    super.dispose();
+  }
+
   // Private helper methods
   void _setLoading(bool loading) {
     _isLoading = loading;
@@ -353,6 +368,16 @@ class ActivityProvider extends ChangeNotifier {
     if (_errorMessage != null) {
       _errorMessage = null;
       notifyListeners();
+    }
+  }
+
+  /// Handle app lifecycle changes
+  void _onAppLifecycleChanged() {
+    // Refresh activity data when app resumes to ensure sync
+    if (_appLifecycleService?.currentState == AppLifecycleState.resumed) {
+      refreshAll().catchError((error) {
+        debugPrint('Error refreshing activities on app resume: $error');
+      });
     }
   }
 }

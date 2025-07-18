@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import '../models/user.dart';
 import '../models/settings.dart';
+import '../models/enums.dart';
 import '../services/degradation_service.dart';
 import '../services/user_service.dart';
 import '../repositories/user_repository.dart';

@@ -3,20 +3,33 @@ import '../models/user.dart';
 import '../models/enums.dart';
 import '../models/onboarding.dart';
 import '../services/user_service.dart';
+import '../services/app_lifecycle_service.dart';
+import '../services/degradation_service.dart';
 import '../repositories/user_repository.dart';
 
 /// Provider for managing user state, level, EXP, and stats
 class UserProvider extends ChangeNotifier {
   final UserService _userService;
+  final AppLifecycleService _appLifecycleService;
   
   User? _currentUser;
   bool _isLoading = false;
   String? _errorMessage;
   bool _needsOnboarding = false;
   bool _isFirstTime = false;
+  
+  // Degradation state
+  List<DegradationWarning> _degradationWarnings = [];
+  bool _hasPendingDegradation = false;
 
-  UserProvider({UserService? userService})
-      : _userService = userService ?? UserService(UserRepository());
+  UserProvider({
+    UserService? userService,
+    AppLifecycleService? appLifecycleService,
+  }) : _userService = userService ?? UserService(UserRepository()),
+       _appLifecycleService = appLifecycleService ?? AppLifecycleService() {
+    // Listen to app lifecycle changes
+    _appLifecycleService.addListener(_onAppLifecycleChanged);
+  }
 
   // Getters
   User? get currentUser => _currentUser;
@@ -25,6 +38,11 @@ class UserProvider extends ChangeNotifier {
   bool get needsOnboarding => _needsOnboarding;
   bool get isFirstTime => _isFirstTime;
   bool get hasUser => _currentUser != null;
+  
+  // Degradation getters
+  List<DegradationWarning> get degradationWarnings => List.unmodifiable(_degradationWarnings);
+  bool get hasPendingDegradation => _hasPendingDegradation;
+  AppLifecycleService get appLifecycleService => _appLifecycleService;
 
   // User profile getters
   String get userName => _currentUser?.name ?? 'Player';
@@ -58,11 +76,18 @@ class UserProvider extends ChangeNotifier {
     _clearError();
 
     try {
+      // Initialize app lifecycle service first
+      await _appLifecycleService.initialize();
+      
+      // Initialize user data
       final result = await _userService.initializeApp();
       
       _currentUser = result.user;
       _needsOnboarding = result.needsOnboarding;
       _isFirstTime = result.isFirstTime;
+      
+      // Check for degradation after user is loaded
+      await _checkDegradation();
       
       notifyListeners();
     } catch (e) {
@@ -285,9 +310,35 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
+  /// Check for degradation and update warnings
+  Future<void> checkDegradation() async {
+    await _checkDegradation();
+  }
+
+  /// Clear degradation warnings
+  void clearDegradationWarnings() {
+    _degradationWarnings.clear();
+    _hasPendingDegradation = false;
+    _appLifecycleService.clearDegradationWarnings();
+    notifyListeners();
+  }
+
+  /// Get degradation warnings for current user
+  List<DegradationWarning> getDegradationWarnings() {
+    if (_currentUser == null) return [];
+    
+    return DegradationService.getDegradationWarnings(_currentUser!);
+  }
+
   /// Clear error message
   void clearError() {
     _clearError();
+  }
+
+  @override
+  void dispose() {
+    _appLifecycleService.removeListener(_onAppLifecycleChanged);
+    super.dispose();
   }
 
   // Private helper methods
@@ -305,6 +356,39 @@ class UserProvider extends ChangeNotifier {
     if (_errorMessage != null) {
       _errorMessage = null;
       notifyListeners();
+    }
+  }
+
+  /// Handle app lifecycle changes
+  void _onAppLifecycleChanged() {
+    // Update degradation warnings when app lifecycle changes
+    _degradationWarnings = _appLifecycleService.degradationWarnings;
+    _hasPendingDegradation = _appLifecycleService.hasPendingDegradation;
+    
+    // Refresh user data if degradation was applied
+    if (_appLifecycleService.hasPendingDegradation && _currentUser != null) {
+      refreshUser();
+    }
+    
+    notifyListeners();
+  }
+
+  /// Check for degradation and update state
+  Future<void> _checkDegradation() async {
+    if (_currentUser == null) return;
+
+    try {
+      final result = await _appLifecycleService.performManualDegradationCheck();
+      
+      _degradationWarnings = result.warnings;
+      _hasPendingDegradation = result.degradationApplied;
+      
+      // If degradation was applied, refresh user data
+      if (result.degradationApplied) {
+        await refreshUser();
+      }
+    } catch (e) {
+      debugPrint('Error checking degradation: $e');
     }
   }
 }
