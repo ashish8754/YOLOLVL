@@ -6,6 +6,7 @@ import '../providers/activity_provider.dart';
 import '../services/activity_service.dart';
 import '../widgets/floating_stat_gain_animation.dart';
 import '../widgets/level_up_celebration.dart';
+import '../widgets/level_up_overlay.dart';
 
 /// Screen for logging new activities with duration and expected gains preview
 class ActivityLoggingScreen extends StatefulWidget {

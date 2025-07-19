@@ -143,3 +143,92 @@ class StatTypeAdapter extends TypeAdapter<StatType> {
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
+
+class AchievementTypeAdapter extends TypeAdapter<AchievementType> {
+  @override
+  final int typeId = 6;
+
+  @override
+  AchievementType read(BinaryReader reader) {
+    switch (reader.readByte()) {
+      case 0:
+        return AchievementType.firstActivity;
+      case 1:
+        return AchievementType.streak7Days;
+      case 2:
+        return AchievementType.streak30Days;
+      case 3:
+        return AchievementType.level5Reached;
+      case 4:
+        return AchievementType.level10Reached;
+      case 5:
+        return AchievementType.level25Reached;
+      case 6:
+        return AchievementType.totalActivities50;
+      case 7:
+        return AchievementType.totalActivities100;
+      case 8:
+        return AchievementType.totalActivities500;
+      case 9:
+        return AchievementType.workoutWarrior;
+      case 10:
+        return AchievementType.studyScholar;
+      case 11:
+        return AchievementType.wellRounded;
+      default:
+        return AchievementType.firstActivity;
+    }
+  }
+
+  @override
+  void write(BinaryWriter writer, AchievementType obj) {
+    switch (obj) {
+      case AchievementType.firstActivity:
+        writer.writeByte(0);
+        break;
+      case AchievementType.streak7Days:
+        writer.writeByte(1);
+        break;
+      case AchievementType.streak30Days:
+        writer.writeByte(2);
+        break;
+      case AchievementType.level5Reached:
+        writer.writeByte(3);
+        break;
+      case AchievementType.level10Reached:
+        writer.writeByte(4);
+        break;
+      case AchievementType.level25Reached:
+        writer.writeByte(5);
+        break;
+      case AchievementType.totalActivities50:
+        writer.writeByte(6);
+        break;
+      case AchievementType.totalActivities100:
+        writer.writeByte(7);
+        break;
+      case AchievementType.totalActivities500:
+        writer.writeByte(8);
+        break;
+      case AchievementType.workoutWarrior:
+        writer.writeByte(9);
+        break;
+      case AchievementType.studyScholar:
+        writer.writeByte(10);
+        break;
+      case AchievementType.wellRounded:
+        writer.writeByte(11);
+        break;
+    }
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AchievementTypeAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}

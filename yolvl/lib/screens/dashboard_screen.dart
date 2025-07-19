@@ -6,6 +6,7 @@ import '../widgets/level_exp_display.dart';
 import '../widgets/stats_overview_chart.dart';
 import '../widgets/daily_summary_widget.dart';
 import '../widgets/level_up_celebration.dart';
+import '../widgets/level_up_overlay.dart';
 import '../services/activity_service.dart';
 import 'activity_logging_screen.dart';
 import 'activity_history_screen.dart';

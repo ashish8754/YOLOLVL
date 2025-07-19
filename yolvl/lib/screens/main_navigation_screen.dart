@@ -4,15 +4,19 @@ import 'dashboard_screen.dart';
 import 'activity_history_screen.dart';
 import 'activity_logging_screen.dart';
 import 'stats_progression_screen.dart';
+import 'achievements_screen.dart';
 import 'settings_screen.dart';
 import '../services/activity_service.dart';
 import '../services/app_lifecycle_service.dart';
 import '../providers/user_provider.dart';
 import '../providers/activity_provider.dart';
 import '../providers/settings_provider.dart';
+import '../providers/achievement_provider.dart';
 import '../widgets/level_exp_display.dart';
 import '../widgets/stats_overview_chart.dart';
 import '../widgets/daily_summary_widget.dart';
+import '../widgets/animated_fab.dart';
+import '../utils/page_transitions.dart';
 
 /// Main navigation screen with bottom navigation bar
 class MainNavigationScreen extends StatefulWidget {
@@ -22,9 +26,12 @@ class MainNavigationScreen extends StatefulWidget {
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
+class _MainNavigationScreenState extends State<MainNavigationScreen>
+    with TickerProviderStateMixin {
   int _currentIndex = 0;
   late final AppLifecycleService _appLifecycleService;
+  late AnimationController _tabAnimationController;
+  late Animation<double> _tabAnimation;
   
   late final List<Widget> _screens;
 
@@ -32,10 +39,21 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   void initState() {
     super.initState();
     _appLifecycleService = AppLifecycleService();
+    _tabAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _tabAnimation = CurvedAnimation(
+      parent: _tabAnimationController,
+      curve: Curves.easeInOutCubic,
+    );
+    _tabAnimationController.forward();
+    
     _screens = [
       DashboardScreenContent(appLifecycleService: _appLifecycleService),
       const ActivityHistoryScreen(),
       const StatsProgressionScreen(),
+      const AchievementsScreen(),
       const SettingsScreen(),
     ];
   }
@@ -43,15 +61,34 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   void dispose() {
     _appLifecycleService.dispose();
+    _tabAnimationController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        transitionBuilder: (Widget child, Animation<double> animation) {
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.1, 0.0),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeInOutCubic,
+              )),
+              child: child,
+            ),
+          );
+        },
+        child: Container(
+          key: ValueKey<int>(_currentIndex),
+          child: _screens[_currentIndex],
+        ),
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
@@ -76,31 +113,45 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             label: 'Stats',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.star),
+            label: 'Achievements',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.settings),
             label: 'Settings',
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _navigateToActivityLogging,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        child: const Icon(Icons.add),
+      floatingActionButton: Consumer<ActivityProvider>(
+        builder: (context, activityProvider, child) {
+          // Show pulse animation if no activities logged today
+          final hasActivitiesToday = activityProvider.todayActivities.isNotEmpty;
+          return PulseFAB(
+            onPressed: _navigateToActivityLogging,
+            icon: Icons.add,
+            tooltip: 'Log Activity',
+            showPulse: !hasActivitiesToday,
+          );
+        },
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 
   void _onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
+    if (index != _currentIndex) {
+      _tabAnimationController.reset();
+      setState(() {
+        _currentIndex = index;
+      });
+      _tabAnimationController.forward();
+    }
   }
 
   Future<void> _navigateToActivityLogging() async {
-    final result = await Navigator.of(context).push<ActivityLogResult>(
-      MaterialPageRoute(
-        builder: (context) => const ActivityLoggingScreen(),
-      ),
+    final result = await Navigator.of(context).pushSlideFade<ActivityLogResult>(
+      const ActivityLoggingScreen(),
+      direction: AxisDirection.up,
     );
 
     // If activity was logged successfully, refresh the current screen
@@ -142,6 +193,7 @@ class _DashboardScreenContentState extends State<DashboardScreenContent> {
     final userProvider = context.read<UserProvider>();
     final activityProvider = context.read<ActivityProvider>();
     final settingsProvider = context.read<SettingsProvider>();
+    final achievementProvider = context.read<AchievementProvider>();
     
     try {
       // Initialize settings first (includes notification service)
@@ -166,6 +218,7 @@ class _DashboardScreenContentState extends State<DashboardScreenContent> {
       }
       
       await activityProvider.initialize();
+      await achievementProvider.loadAchievements();
       _isInitialized = true;
     } catch (e) {
       debugPrint('Error initializing dashboard: $e');

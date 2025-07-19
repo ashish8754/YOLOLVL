@@ -4,12 +4,14 @@ import '../models/enums.dart';
 import '../models/user.dart';
 import '../models/activity_log.dart';
 import '../models/settings.dart';
+import '../models/achievement.dart';
 
 /// Configuration class for Hive local storage
 class HiveConfig {
   static const String userBoxName = 'user_box';
   static const String activityBoxName = 'activity_box';
   static const String settingsBoxName = 'settings_box';
+  static const String achievementBoxName = 'achievement_box';
 
   /// Initialize Hive with proper configuration
   static Future<void> initialize() async {
@@ -28,11 +30,13 @@ class HiveConfig {
     // Register enum adapters
     Hive.registerAdapter(ActivityTypeAdapter());
     Hive.registerAdapter(StatTypeAdapter());
+    Hive.registerAdapter(AchievementTypeAdapter());
     
     // Register model adapters
     Hive.registerAdapter(UserAdapter());
     Hive.registerAdapter(ActivityLogAdapter());
     Hive.registerAdapter(SettingsAdapter());
+    Hive.registerAdapter(AchievementAdapter());
   }
 
   /// Open all required Hive boxes
@@ -41,6 +45,7 @@ class HiveConfig {
       await Hive.openBox<User>(userBoxName);
       await Hive.openBox<ActivityLog>(activityBoxName);
       await Hive.openBox<Settings>(settingsBoxName);
+      await Hive.openBox<Achievement>(achievementBoxName);
     } catch (e) {
       throw Exception('Failed to open Hive boxes: $e');
     }

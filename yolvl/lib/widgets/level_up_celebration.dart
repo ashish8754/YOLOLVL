@@ -1,7 +1,7 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 
-/// Widget that shows a level-up celebration animation with confetti and glow effects
+/// Widget for displaying level up celebration animation
 class LevelUpCelebration extends StatefulWidget {
   final int newLevel;
   final VoidCallback? onAnimationComplete;
@@ -18,77 +18,179 @@ class LevelUpCelebration extends StatefulWidget {
 
 class _LevelUpCelebrationState extends State<LevelUpCelebration>
     with TickerProviderStateMixin {
-  late AnimationController _mainController;
+  late AnimationController _scaleController;
+  late AnimationController _fadeController;
   late AnimationController _confettiController;
-  late AnimationController _glowController;
   
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
-  late Animation<double> _glowAnimation;
-  
-  final List<ConfettiParticle> _confettiParticles = [];
-  final Random _random = Random();
+  late Animation<double> _confettiAnimation;
 
   @override
   void initState() {
     super.initState();
-    _setupAnimations();
-    _generateConfetti();
-    _startAnimations();
-  }
-
-  void _setupAnimations() {
-    _mainController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
+    
+    _scaleController = AnimationController(
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-
-    _confettiController = AnimationController(
-      duration: const Duration(milliseconds: 3000),
-      vsync: this,
-    );
-
-    _glowController = AnimationController(
+    
+    _fadeController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
-
-    _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _mainController,
-        curve: const Interval(0.0, 0.6, curve: Curves.elasticOut),
-      ),
+    
+    _confettiController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
     );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _mainController,
-        curve: const Interval(0.0, 0.3, curve: Curves.easeIn),
-      ),
-    );
-
-    _glowAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _glowController,
-        curve: Curves.easeInOut,
-      ),
-    );
+    
+    _scaleAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _scaleController,
+      curve: Curves.elasticOut,
+    ));
+    
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeInOut,
+    ));
+    
+    _confettiAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _confettiController,
+      curve: Curves.easeOut,
+    ));
+    
+    _startAnimation();
   }
 
-  void _generateConfetti() {
-    for (int i = 0; i < 50; i++) {
-      _confettiParticles.add(ConfettiParticle(
-        x: _random.nextDouble(),
-        y: _random.nextDouble() * 0.3,
-        color: _getRandomColor(),
-        size: _random.nextDouble() * 8 + 4,
-        rotation: _random.nextDouble() * 2 * pi,
-        velocity: _random.nextDouble() * 2 + 1,
-      ));
+  void _startAnimation() async {
+    _fadeController.forward();
+    await Future.delayed(const Duration(milliseconds: 200));
+    
+    _scaleController.forward();
+    _confettiController.forward();
+    
+    await Future.delayed(const Duration(milliseconds: 3000));
+    
+    if (widget.onAnimationComplete != null) {
+      widget.onAnimationComplete!();
     }
   }
 
-  Color _getRandomColor() {
+  @override
+  void dispose() {
+    _scaleController.dispose();
+    _fadeController.dispose();
+    _confettiController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([_scaleController, _fadeController, _confettiController]),
+      builder: (context, child) {
+        return Stack(
+          children: [
+            // Confetti background
+            CustomPaint(
+              painter: ConfettiPainter(_confettiAnimation.value),
+              size: MediaQuery.of(context).size,
+            ),
+            
+            // Level up message
+            Center(
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: ScaleTransition(
+                  scale: _scaleAnimation,
+                  child: Container(
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.star,
+                          size: 64,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'LEVEL UP!',
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Level ${widget.newLevel}',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Colors.white.withOpacity(0.9),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Congratulations!',
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: Colors.white.withOpacity(0.8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Custom painter for confetti animation
+class ConfettiPainter extends CustomPainter {
+  final double animationValue;
+  final List<ConfettiParticle> particles;
+
+  ConfettiPainter(this.animationValue) : particles = _generateParticles();
+
+  static List<ConfettiParticle> _generateParticles() {
+    final random = math.Random();
+    return List.generate(50, (index) {
+      return ConfettiParticle(
+        x: random.nextDouble(),
+        y: random.nextDouble() * 0.3, // Start from top third
+        color: _getRandomColor(random),
+        size: random.nextDouble() * 8 + 4,
+        rotation: random.nextDouble() * 2 * math.pi,
+        velocity: random.nextDouble() * 2 + 1,
+      );
+    });
+  }
+
+  static Color _getRandomColor(math.Random random) {
     final colors = [
       Colors.red,
       Colors.blue,
@@ -97,167 +199,41 @@ class _LevelUpCelebrationState extends State<LevelUpCelebration>
       Colors.purple,
       Colors.orange,
       Colors.pink,
+      Colors.cyan,
     ];
-    return colors[_random.nextInt(colors.length)];
-  }
-
-  void _startAnimations() async {
-    // Start main animation
-    _mainController.forward();
-    
-    // Start confetti animation with slight delay
-    await Future.delayed(const Duration(milliseconds: 300));
-    if (mounted) {
-      _confettiController.forward();
-    }
-
-    // Start glow animation
-    _glowController.repeat(reverse: true);
-
-    // Complete after main animation
-    await Future.delayed(const Duration(milliseconds: 2500));
-    if (mounted && widget.onAnimationComplete != null) {
-      widget.onAnimationComplete!();
-    }
+    return colors[random.nextInt(colors.length)];
   }
 
   @override
-  void dispose() {
-    _mainController.dispose();
-    _confettiController.dispose();
-    _glowController.dispose();
-    super.dispose();
-  }
+  void paint(Canvas canvas, Size size) {
+    for (final particle in particles) {
+      final paint = Paint()
+        ..color = particle.color.withOpacity(1.0 - animationValue)
+        ..style = PaintingStyle.fill;
 
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        width: double.infinity,
-        height: double.infinity,
-        color: Colors.black.withValues(alpha: 0.7),
-        child: Stack(
-          children: [
-            // Confetti particles
-            AnimatedBuilder(
-              animation: _confettiController,
-              builder: (context, child) {
-                return CustomPaint(
-                  painter: ConfettiPainter(
-                    particles: _confettiParticles,
-                    progress: _confettiController.value,
-                  ),
-                  size: Size.infinite,
-                );
-              },
-            ),
-            
-            // Main celebration content
-            Center(
-              child: AnimatedBuilder(
-                animation: _mainController,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: _scaleAnimation.value,
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Glow effect behind the emoji
-                          AnimatedBuilder(
-                            animation: _glowController,
-                            builder: (context, child) {
-                              return Container(
-                                width: 120,
-                                height: 120,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Theme.of(context).colorScheme.primary
-                                          .withValues(alpha: _glowAnimation.value * 0.6),
-                                      blurRadius: 30 + (_glowAnimation.value * 20),
-                                      spreadRadius: 5 + (_glowAnimation.value * 10),
-                                    ),
-                                  ],
-                                ),
-                                child: const Center(
-                                  child: Text(
-                                    '🎉',
-                                    style: TextStyle(fontSize: 64),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                          
-                          const SizedBox(height: 24),
-                          
-                          // Level up text
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 32,
-                              vertical: 16,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primaryContainer,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: Theme.of(context).colorScheme.primary,
-                                width: 2,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Theme.of(context).colorScheme.primary
-                                      .withValues(alpha: 0.3),
-                                  blurRadius: 15,
-                                  offset: const Offset(0, 5),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              children: [
-                                Text(
-                                  'LEVEL UP!',
-                                  style: TextStyle(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                                    shadows: [
-                                      Shadow(
-                                        color: Theme.of(context).colorScheme.primary
-                                            .withValues(alpha: 0.5),
-                                        offset: const Offset(2, 2),
-                                        blurRadius: 4,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'You reached Level ${widget.newLevel}!',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
+      final x = particle.x * size.width;
+      final y = particle.y * size.height + (animationValue * size.height * particle.velocity);
+      
+      canvas.save();
+      canvas.translate(x, y);
+      canvas.rotate(particle.rotation + animationValue * 4 * math.pi);
+      
+      canvas.drawRect(
+        Rect.fromCenter(
+          center: Offset.zero,
+          width: particle.size,
+          height: particle.size * 0.6,
         ),
-      ),
-    );
+        paint,
+      );
+      
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return true;
   }
 }
 
@@ -278,109 +254,4 @@ class ConfettiParticle {
     required this.rotation,
     required this.velocity,
   });
-}
-
-/// Custom painter for confetti particles
-class ConfettiPainter extends CustomPainter {
-  final List<ConfettiParticle> particles;
-  final double progress;
-
-  ConfettiPainter({
-    required this.particles,
-    required this.progress,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    for (final particle in particles) {
-      final paint = Paint()
-        ..color = particle.color.withValues(alpha: 1.0 - progress * 0.7)
-        ..style = PaintingStyle.fill;
-
-      final x = particle.x * size.width;
-      final y = particle.y * size.height + (progress * size.height * particle.velocity);
-      
-      canvas.save();
-      canvas.translate(x, y);
-      canvas.rotate(particle.rotation + progress * 4 * pi);
-      
-      // Draw confetti as small rectangles
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromCenter(
-            center: Offset.zero,
-            width: particle.size,
-            height: particle.size * 0.6,
-          ),
-          const Radius.circular(2),
-        ),
-        paint,
-      );
-      
-      canvas.restore();
-    }
-  }
-
-  @override
-  bool shouldRepaint(ConfettiPainter oldDelegate) {
-    return oldDelegate.progress != progress;
-  }
-}
-
-/// Overlay widget to show level-up celebration
-class LevelUpOverlay extends StatefulWidget {
-  final Widget child;
-  final bool showCelebration;
-  final int? newLevel;
-  final VoidCallback? onAnimationComplete;
-
-  const LevelUpOverlay({
-    super.key,
-    required this.child,
-    this.showCelebration = false,
-    this.newLevel,
-    this.onAnimationComplete,
-  });
-
-  @override
-  State<LevelUpOverlay> createState() => _LevelUpOverlayState();
-}
-
-class _LevelUpOverlayState extends State<LevelUpOverlay> {
-  bool _showAnimation = false;
-
-  @override
-  void didUpdateWidget(LevelUpOverlay oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.showCelebration && !oldWidget.showCelebration) {
-      setState(() {
-        _showAnimation = true;
-      });
-    }
-  }
-
-  void _onAnimationComplete() {
-    setState(() {
-      _showAnimation = false;
-    });
-    if (widget.onAnimationComplete != null) {
-      widget.onAnimationComplete!();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        widget.child,
-        if (_showAnimation && widget.newLevel != null)
-          Positioned.fill(
-            child: LevelUpCelebration(
-              newLevel: widget.newLevel!,
-              onAnimationComplete: _onAnimationComplete,
-            ),
-          ),
-      ],
-    );
-  }
 }

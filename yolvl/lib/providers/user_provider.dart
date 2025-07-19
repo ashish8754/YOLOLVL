@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import '../models/user.dart';
 import '../models/enums.dart';
 import '../models/onboarding.dart';
+
 import '../services/user_service.dart';
 import '../services/app_lifecycle_service.dart';
 import '../services/degradation_service.dart';

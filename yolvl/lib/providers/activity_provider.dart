@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import '../models/activity_log.dart';
 import '../models/enums.dart';
+import '../models/achievement.dart';
 import '../services/activity_service.dart';
 import '../services/app_lifecycle_service.dart';
 import '../repositories/activity_repository.dart';
@@ -30,6 +31,7 @@ class ActivityProvider extends ChangeNotifier {
   // Notification callbacks
   Function(int newLevel)? _onLevelUp;
   Function(int streakDays)? _onStreakMilestone;
+  Function(List<AchievementUnlockResult> achievements)? _onAchievementsUnlocked;
 
   ActivityProvider({
     ActivityService? activityService,
@@ -357,6 +359,11 @@ class ActivityProvider extends ChangeNotifier {
   /// Set callback for streak milestone notifications
   void setStreakMilestoneCallback(Function(int streakDays)? callback) {
     _onStreakMilestone = callback;
+  }
+
+  /// Set callback for achievement unlock notifications
+  void setAchievementUnlockedCallback(Function(List<AchievementUnlockResult> achievements)? callback) {
+    _onAchievementsUnlocked = callback;
   }
 
   /// Refresh all activity data

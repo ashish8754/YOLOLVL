@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
 import '../models/enums.dart';
 import '../services/stats_service.dart';
+import '../utils/accessibility_helper.dart';
 import 'backup_screen.dart';
 
 /// Settings screen with customization options
@@ -99,6 +100,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildThemeSection(settingsProvider),
+                const SizedBox(height: 24),
+                _buildAccessibilitySection(settingsProvider),
                 const SizedBox(height: 24),
                 _buildActivitySection(settingsProvider),
                 const SizedBox(height: 24),
@@ -379,6 +382,141 @@ class _SettingsScreenState extends State<SettingsScreen> {
           subtitle: const Text('Reset all settings to default values'),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => _showResetSettingsDialog(settingsProvider),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAccessibilitySection(SettingsProvider settingsProvider) {
+    return _buildSection(
+      title: 'Accessibility',
+      icon: Icons.accessibility,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Text(
+            'Accessibility features to improve app usability',
+            style: TextStyle(
+              fontSize: 14,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
+          ),
+        ),
+        AccessibilityHelper.createAccessibleCard(
+          semanticLabel: 'High contrast mode toggle',
+          child: SwitchListTile(
+            title: Text(
+              'High Contrast Mode',
+              style: AccessibilityHelper.getAccessibleTextStyle(
+                context,
+                const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+            ),
+            subtitle: Text(
+              'Increase contrast for better visibility',
+              style: AccessibilityHelper.getAccessibleTextStyle(
+                context,
+                const TextStyle(fontSize: 14),
+              ),
+            ),
+            value: AccessibilityHelper.isHighContrastEnabled(context),
+            onChanged: (value) {
+              // This would need to be implemented in settings provider
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('High contrast mode is controlled by system settings'),
+                ),
+              );
+            },
+            secondary: Icon(
+              Icons.contrast,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+        ),
+        AccessibilityHelper.createAccessibleCard(
+          semanticLabel: 'Large text information',
+          child: ListTile(
+            leading: Icon(
+              Icons.text_fields,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            title: Text(
+              'Large Text',
+              style: AccessibilityHelper.getAccessibleTextStyle(
+                context,
+                const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+            ),
+            subtitle: Text(
+              'Text size follows system accessibility settings',
+              style: AccessibilityHelper.getAccessibleTextStyle(
+                context,
+                const TextStyle(fontSize: 14),
+              ),
+            ),
+            trailing: Text(
+              'System',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ),
+        AccessibilityHelper.createAccessibleCard(
+          semanticLabel: 'Screen reader support information',
+          child: ListTile(
+            leading: Icon(
+              Icons.record_voice_over,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            title: Text(
+              'Screen Reader Support',
+              style: AccessibilityHelper.getAccessibleTextStyle(
+                context,
+                const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+            ),
+            subtitle: Text(
+              'Full support for VoiceOver and TalkBack',
+              style: AccessibilityHelper.getAccessibleTextStyle(
+                context,
+                const TextStyle(fontSize: 14),
+              ),
+            ),
+            trailing: Icon(
+              Icons.check_circle,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+        ),
+        AccessibilityHelper.createAccessibleCard(
+          semanticLabel: 'Touch targets information',
+          child: ListTile(
+            leading: Icon(
+              Icons.touch_app,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            title: Text(
+              'Large Touch Targets',
+              style: AccessibilityHelper.getAccessibleTextStyle(
+                context,
+                const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+            ),
+            subtitle: Text(
+              'All interactive elements meet accessibility guidelines',
+              style: AccessibilityHelper.getAccessibleTextStyle(
+                context,
+                const TextStyle(fontSize: 14),
+              ),
+            ),
+            trailing: Icon(
+              Icons.check_circle,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
         ),
       ],
     );

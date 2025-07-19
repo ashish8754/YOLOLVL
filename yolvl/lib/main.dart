@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'utils/hive_config.dart';
+import 'utils/accessibility_helper.dart';
 import 'providers/user_provider.dart';
 import 'providers/activity_provider.dart';
 import 'providers/settings_provider.dart';
+import 'providers/achievement_provider.dart';
 import 'screens/main_navigation_screen.dart';
 
 void main() async {
@@ -30,6 +32,7 @@ class YolvlApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => ActivityProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ChangeNotifierProvider(create: (_) => AchievementProvider()),
       ],
       child: Consumer<SettingsProvider>(
         builder: (context, settingsProvider, child) {
@@ -38,8 +41,22 @@ class YolvlApp extends StatelessWidget {
             theme: _buildLightTheme(),
             darkTheme: _buildDarkTheme(),
             themeMode: settingsProvider.themeMode,
-            home: const MainNavigationScreen(),
+            home: HighContrastTheme(
+              child: const MainNavigationScreen(),
+            ),
             debugShowCheckedModeBanner: false,
+            builder: (context, child) {
+              // Ensure minimum text scale for accessibility
+              final mediaQuery = MediaQuery.of(context);
+              final textScaleFactor = mediaQuery.textScaler.scale(1.0).clamp(1.0, 2.0);
+              
+              return MediaQuery(
+                data: mediaQuery.copyWith(
+                  textScaler: TextScaler.linear(textScaleFactor),
+                ),
+                child: child!,
+              );
+            },
           );
         },
       ),
