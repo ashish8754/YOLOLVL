@@ -132,7 +132,16 @@ class StatsService {
     final validatedStats = <StatType, double>{};
     
     for (final entry in stats.entries) {
-      validatedStats[entry.key] = entry.value < minValue ? minValue : entry.value;
+      final value = entry.value;
+      
+      // Handle NaN and infinity values
+      if (value.isNaN || value.isInfinite) {
+        validatedStats[entry.key] = minValue;
+      } else if (value < minValue) {
+        validatedStats[entry.key] = minValue;
+      } else {
+        validatedStats[entry.key] = value;
+      }
     }
     
     return validatedStats;

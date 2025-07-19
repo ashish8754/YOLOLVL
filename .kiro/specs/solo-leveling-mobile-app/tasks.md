@@ -178,14 +178,14 @@
     - Create large touch targets and motor accessibility features
     - _Requirements: 11.6_
 
-- [ ] 14. Testing and Quality Assurance
-  - [ ] 14.1 Write comprehensive unit tests
+- [x] 14. Testing and Quality Assurance
+  - [x] 14.1 Write comprehensive unit tests
     - Create unit tests for all service classes (EXP, Stats, Degradation)
     - Test edge cases for calculations, data validation, and error handling
     - Achieve 80% code coverage for core business logic
     - _Requirements: All calculation requirements_
 
-  - [ ] 14.2 Implement widget and integration tests
+  - [x] 14.2 Implement widget and integration tests
     - Create widget tests for all major screens and components
     - Test complete user flows: onboarding, logging, viewing progress
     - Add performance tests for large datasets and offline scenarios

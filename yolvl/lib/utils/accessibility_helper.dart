@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/semantics.dart';
 
 /// Helper class for accessibility features
 class AccessibilityHelper {
@@ -7,7 +8,7 @@ class AccessibilityHelper {
   static const double minTouchTargetSize = 44.0;
 
   /// Provide haptic feedback for interactions
-  static void provideFeedback(HapticFeedbackType type) {
+  static void provideFeedback() {
     HapticFeedback.selectionClick();
   }
 

@@ -125,7 +125,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       floatingActionButton: Consumer<ActivityProvider>(
         builder: (context, activityProvider, child) {
           // Show pulse animation if no activities logged today
-          final hasActivitiesToday = activityProvider.todayActivities.isNotEmpty;
+          final hasActivitiesToday = activityProvider.todaysActivities.isNotEmpty;
           return PulseFAB(
             onPressed: _navigateToActivityLogging,
             icon: Icons.add,
