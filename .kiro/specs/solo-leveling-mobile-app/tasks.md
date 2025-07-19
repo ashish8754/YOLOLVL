@@ -118,46 +118,46 @@
     - Add haptic feedback and visual confirmation for successful logging
     - _Requirements: 3.4, 4.5_
 
-- [-] 9. History and Progress Visualization
-  - [ ] 9.1 Build activity history screen with filtering
+- [x] 9. History and Progress Visualization
+  - [x] 9.1 Build activity history screen with filtering
     - Create scrollable list/calendar view of past activity logs
     - Implement activity type filtering and date range selection
     - Add efficient loading and pagination for large datasets
     - _Requirements: 7.1, 7.2_
 
-  - [ ] 9.2 Create detailed stats progression charts
+  - [x] 9.2 Create detailed stats progression charts
     - Implement line charts using fl_chart for each stat over time
     - Add time range selection (daily, weekly, monthly views)
     - Create interactive chart features with data point details
     - _Requirements: 7.3, 7.4_
 
-- [ ] 10. Settings and Data Management
-  - [ ] 10.1 Implement settings screen with customization options
+- [x] 10. Settings and Data Management
+  - [x] 10.1 Implement settings screen with customization options
     - Create activity enable/disable toggles for individual activities
     - Add custom stat increment adjustment sliders/inputs
     - Implement dark/light theme switching and relaxed weekend mode
     - _Requirements: 9.1, 9.2, 9.6, 9.7_
 
-  - [ ] 10.2 Build backup and data export functionality
+  - [x] 10.2 Build backup and data export functionality
     - Create JSON export functionality with complete user data
     - Implement import/restore from backup files with validation
     - Add automatic backup to device storage on app close
     - _Requirements: 9.3, 9.4, 10.2, 10.3_
 
-- [ ] 11. Notifications and Background Processing
-  - [ ] 11.1 Implement local push notifications
+- [x] 11. Notifications and Background Processing
+  - [x] 11.1 Implement local push notifications
     - Set up local_notifications plugin for daily reminders
     - Create customizable notification scheduling for activity logging
     - Add degradation warning notifications for missed activities
     - _Requirements: 9.5_
 
-  - [ ] 11.2 Add app lifecycle management
+  - [x] 11.2 Add app lifecycle management
     - Implement proper app pause/resume handling
     - Create background task scheduling for degradation checks
     - Add crash recovery and data integrity validation on startup
     - _Requirements: 10.4, 10.5_
 
-- [ ] 12. Achievements and Motivation Features
+- [-] 12. Achievements and Motivation Features
   - [ ] 12.1 Create basic achievement system
     - Implement simple badges for milestones (7-day streak, Level 5 reached)
     - Add achievement unlock detection and celebration animations

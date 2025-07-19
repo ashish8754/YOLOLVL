@@ -3,17 +3,22 @@ import 'package:flutter/material.dart';
 import '../models/settings.dart';
 import '../models/enums.dart';
 import '../repositories/settings_repository.dart';
+import '../services/notification_service.dart';
 
 /// Provider for managing app configuration and theme settings
 class SettingsProvider extends ChangeNotifier {
   final SettingsRepository _settingsRepository;
+  final NotificationService _notificationService;
   
   Settings? _settings;
   bool _isLoading = false;
   String? _errorMessage;
 
-  SettingsProvider({SettingsRepository? settingsRepository})
-      : _settingsRepository = settingsRepository ?? SettingsRepository();
+  SettingsProvider({
+    SettingsRepository? settingsRepository,
+    NotificationService? notificationService,
+  }) : _settingsRepository = settingsRepository ?? SettingsRepository(),
+       _notificationService = notificationService ?? NotificationService();
 
   // Getters
   Settings? get settings => _settings;
@@ -50,6 +55,15 @@ class SettingsProvider extends ChangeNotifier {
 
     try {
       _settings = _settingsRepository.getSettings();
+      
+      // Initialize notification service
+      await _notificationService.initialize();
+      
+      // Schedule daily reminder if notifications are enabled
+      if (_settings != null && _settings!.notificationsEnabled) {
+        await _notificationService.scheduleDailyReminder(_settings!);
+      }
+      
       notifyListeners();
     } catch (e) {
       _setError('Failed to initialize settings: $e');
@@ -87,9 +101,15 @@ class SettingsProvider extends ChangeNotifier {
     if (_settings == null) return;
 
     try {
-      final updatedSettings = _settings!.copyWith(
-        notificationsEnabled: !_settings!.notificationsEnabled,
-      );
+      final newEnabled = !_settings!.notificationsEnabled;
+      final updatedSettings = _settings!.copyWith(notificationsEnabled: newEnabled);
+      
+      if (newEnabled) {
+        await _notificationService.scheduleDailyReminder(updatedSettings);
+      } else {
+        await _notificationService.cancelAllNotifications();
+      }
+      
       await _updateSettings(updatedSettings);
     } catch (e) {
       _setError('Failed to toggle notifications: $e');
@@ -102,6 +122,13 @@ class SettingsProvider extends ChangeNotifier {
 
     try {
       final updatedSettings = _settings!.copyWith(notificationsEnabled: enabled);
+      
+      if (enabled) {
+        await _notificationService.scheduleDailyReminder(updatedSettings);
+      } else {
+        await _notificationService.cancelAllNotifications();
+      }
+      
       await _updateSettings(updatedSettings);
     } catch (e) {
       _setError('Failed to set notifications: $e');
@@ -117,6 +144,12 @@ class SettingsProvider extends ChangeNotifier {
         dailyReminderHour: hour,
         dailyReminderMinute: minute,
       );
+      
+      // Reschedule daily reminder with new time if notifications are enabled
+      if (updatedSettings.notificationsEnabled) {
+        await _notificationService.scheduleDailyReminder(updatedSettings);
+      }
+      
       await _updateSettings(updatedSettings);
     } catch (e) {
       _setError('Failed to set reminder time: $e');
@@ -332,6 +365,50 @@ class SettingsProvider extends ChangeNotifier {
   Map<String, double> getAllCustomStatIncrements() {
     return _settings?.customStatIncrements ?? {};
   }
+
+  /// Send degradation warning notification
+  Future<void> sendDegradationWarning({
+    required List<ActivityType> missedActivities,
+    required int daysMissed,
+  }) async {
+    if (_settings == null || !_settings!.notificationsEnabled || !_settings!.degradationWarningsEnabled) {
+      return;
+    }
+
+    try {
+      await _notificationService.scheduleDegradationWarning(
+        missedActivities: missedActivities,
+        daysMissed: daysMissed,
+      );
+    } catch (e) {
+      debugPrint('Failed to send degradation warning: $e');
+    }
+  }
+
+  /// Send level up notification
+  Future<void> sendLevelUpNotification(int newLevel) async {
+    if (_settings == null || !_settings!.notificationsEnabled) return;
+
+    try {
+      await _notificationService.sendLevelUpNotification(newLevel);
+    } catch (e) {
+      debugPrint('Failed to send level up notification: $e');
+    }
+  }
+
+  /// Send streak milestone notification
+  Future<void> sendStreakNotification(int streakDays) async {
+    if (_settings == null || !_settings!.notificationsEnabled) return;
+
+    try {
+      await _notificationService.sendStreakNotification(streakDays);
+    } catch (e) {
+      debugPrint('Failed to send streak notification: $e');
+    }
+  }
+
+  /// Get notification service for direct access
+  NotificationService get notificationService => _notificationService;
 
   /// Clear error message
   void clearError() {

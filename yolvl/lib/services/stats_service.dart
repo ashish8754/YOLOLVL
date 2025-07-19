@@ -143,6 +143,11 @@ class StatsService {
     return calculateStatGains(activityType, 60); // 60 minutes = 1 hour
   }
 
+  /// Get default stat gains per hour for an activity type (for settings display)
+  static Map<StatType, double> getDefaultStatGains(ActivityType activityType) {
+    return getStatGainRates(activityType);
+  }
+
   /// Calculate expected gains for preview purposes
   static StatGainPreview calculateExpectedGains(ActivityType activityType, int durationMinutes) {
     final gains = calculateStatGains(activityType, durationMinutes);

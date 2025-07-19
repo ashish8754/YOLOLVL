@@ -159,6 +159,65 @@ class User extends HiveObject {
     );
   }
 
+  /// Convert to JSON for backup/export
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'avatarPath': avatarPath,
+      'level': level,
+      'currentEXP': currentEXP,
+      'stats': stats,
+      'createdAt': createdAt.toIso8601String(),
+      'lastActive': lastActive.toIso8601String(),
+      'hasCompletedOnboarding': hasCompletedOnboarding,
+      'lastActivityDates': lastActivityDates.map(
+        (key, value) => MapEntry(key, value.toIso8601String()),
+      ),
+    };
+  }
+
+  /// Create from JSON for backup/import
+  factory User.fromJson(Map<String, dynamic> json) {
+    return User(
+      id: json['id'],
+      name: json['name'],
+      avatarPath: json['avatarPath'],
+      level: json['level'],
+      currentEXP: json['currentEXP'].toDouble(),
+      stats: Map<String, double>.from(json['stats']),
+      createdAt: DateTime.parse(json['createdAt']),
+      lastActive: DateTime.parse(json['lastActive']),
+      hasCompletedOnboarding: json['hasCompletedOnboarding'],
+      lastActivityDates: (json['lastActivityDates'] as Map<String, dynamic>?)
+          ?.map((key, value) => MapEntry(key, DateTime.parse(value))) ?? {},
+    );
+  }
+
+  /// Create a default user for data recovery
+  factory User.createDefault() {
+    final now = DateTime.now();
+    return User(
+      id: 'user_${now.millisecondsSinceEpoch}',
+      name: 'Player',
+      avatarPath: null,
+      level: 1,
+      currentEXP: 0.0,
+      stats: {
+        StatType.strength.name: 1.0,
+        StatType.agility.name: 1.0,
+        StatType.endurance.name: 1.0,
+        StatType.intelligence.name: 1.0,
+        StatType.focus.name: 1.0,
+        StatType.charisma.name: 1.0,
+      },
+      createdAt: now,
+      lastActive: now,
+      hasCompletedOnboarding: false,
+      lastActivityDates: {},
+    );
+  }
+
   @override
   String toString() {
     return 'User(id: $id, name: $name, level: $level, currentEXP: $currentEXP)';

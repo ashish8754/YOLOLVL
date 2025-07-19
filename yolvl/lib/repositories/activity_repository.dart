@@ -201,6 +201,27 @@ class ActivityRepository extends BaseRepository<ActivityLog> {
     }
   }
 
+  /// Get all activities (for data integrity checks)
+  Future<List<ActivityLog>> getAllActivities() async {
+    try {
+      return findAll();
+    } catch (e) {
+      throw RepositoryException('Failed to get all activities: $e');
+    }
+  }
+
+  /// Clear all activities (for data integrity recovery)
+  Future<void> clearAllActivities() async {
+    try {
+      final activities = findAll();
+      for (final activity in activities) {
+        await delete(activity);
+      }
+    } catch (e) {
+      throw RepositoryException('Failed to clear all activities: $e');
+    }
+  }
+
   @override
   bool validateEntity(ActivityLog entity) {
     // Validate activity log data

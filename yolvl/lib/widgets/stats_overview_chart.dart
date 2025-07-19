@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../providers/user_provider.dart';
 import '../models/enums.dart';
+import '../screens/stats_progression_screen.dart';
 
 /// Widget displaying user stats as a bar chart
 class StatsOverviewChart extends StatelessWidget {
@@ -28,14 +29,34 @@ class StatsOverviewChart extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Title
-              Text(
-                'Stats Overview',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
+              // Title with navigation button
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Stats Overview',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const StatsProgressionScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.show_chart, size: 16),
+                    label: const Text('View Details'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Theme.of(context).colorScheme.primary,
+                      textStyle: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
               ),
               
               const SizedBox(height: 20),

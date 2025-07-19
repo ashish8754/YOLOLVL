@@ -3,9 +3,13 @@ import 'package:provider/provider.dart';
 import 'dashboard_screen.dart';
 import 'activity_history_screen.dart';
 import 'activity_logging_screen.dart';
+import 'stats_progression_screen.dart';
+import 'settings_screen.dart';
 import '../services/activity_service.dart';
+import '../services/app_lifecycle_service.dart';
 import '../providers/user_provider.dart';
 import '../providers/activity_provider.dart';
+import '../providers/settings_provider.dart';
 import '../widgets/level_exp_display.dart';
 import '../widgets/stats_overview_chart.dart';
 import '../widgets/daily_summary_widget.dart';
@@ -20,12 +24,27 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
+  late final AppLifecycleService _appLifecycleService;
   
-  final List<Widget> _screens = [
-    const DashboardScreenContent(),
-    const ActivityHistoryScreen(),
-    const Center(child: Text('Settings')), // Placeholder for settings
-  ];
+  late final List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _appLifecycleService = AppLifecycleService();
+    _screens = [
+      DashboardScreenContent(appLifecycleService: _appLifecycleService),
+      const ActivityHistoryScreen(),
+      const StatsProgressionScreen(),
+      const SettingsScreen(),
+    ];
+  }
+
+  @override
+  void dispose() {
+    _appLifecycleService.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +60,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
         selectedItemColor: Theme.of(context).colorScheme.primary,
         unselectedItemColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+        selectedFontSize: 12,
+        unselectedFontSize: 10,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard),
@@ -49,6 +70,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.history),
             label: 'History',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.show_chart),
+            label: 'Stats',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
@@ -92,7 +117,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
 /// Dashboard screen content without the scaffold (to be used in navigation)
 class DashboardScreenContent extends StatefulWidget {
-  const DashboardScreenContent({super.key});
+  final AppLifecycleService? appLifecycleService;
+  
+  const DashboardScreenContent({super.key, this.appLifecycleService});
 
   @override
   State<DashboardScreenContent> createState() => _DashboardScreenContentState();
@@ -114,8 +141,26 @@ class _DashboardScreenContentState extends State<DashboardScreenContent> {
     
     final userProvider = context.read<UserProvider>();
     final activityProvider = context.read<ActivityProvider>();
+    final settingsProvider = context.read<SettingsProvider>();
     
     try {
+      // Initialize settings first (includes notification service)
+      await settingsProvider.initialize();
+      
+      // Initialize app lifecycle service (passed from parent)
+      if (widget.appLifecycleService != null) {
+        await widget.appLifecycleService!.initialize();
+      }
+      
+      // Set up notification callbacks
+      activityProvider.setLevelUpCallback((newLevel) {
+        settingsProvider.sendLevelUpNotification(newLevel);
+      });
+      
+      activityProvider.setStreakMilestoneCallback((streakDays) {
+        settingsProvider.sendStreakNotification(streakDays);
+      });
+      
       if (!userProvider.hasUser) {
         await userProvider.initializeApp();
       }
@@ -231,6 +276,11 @@ class _DashboardScreenContentState extends State<DashboardScreenContent> {
   Future<void> _refreshData() async {
     final userProvider = context.read<UserProvider>();
     final activityProvider = context.read<ActivityProvider>();
+    
+    // Also refresh degradation status
+    if (widget.appLifecycleService != null) {
+      await widget.appLifecycleService!.refreshDegradationStatus();
+    }
     
     await Future.wait([
       userProvider.refreshUser(),

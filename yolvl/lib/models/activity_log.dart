@@ -146,6 +146,32 @@ class ActivityLog extends HiveObject {
     );
   }
 
+  /// Convert to JSON for backup/export
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'activityType': activityType,
+      'durationMinutes': durationMinutes,
+      'timestamp': timestamp.toIso8601String(),
+      'statGains': statGains,
+      'expGained': expGained,
+      'notes': notes,
+    };
+  }
+
+  /// Create from JSON for backup/import
+  factory ActivityLog.fromJson(Map<String, dynamic> json) {
+    return ActivityLog(
+      id: json['id'],
+      activityType: json['activityType'],
+      durationMinutes: json['durationMinutes'],
+      timestamp: DateTime.parse(json['timestamp']),
+      statGains: Map<String, double>.from(json['statGains']),
+      expGained: json['expGained'].toDouble(),
+      notes: json['notes'],
+    );
+  }
+
   @override
   String toString() {
     return 'ActivityLog(id: $id, type: $activityType, duration: ${durationMinutes}m, exp: $expGained)';

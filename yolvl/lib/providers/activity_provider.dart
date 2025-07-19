@@ -26,6 +26,10 @@ class ActivityProvider extends ChangeNotifier {
   int _selectedDuration = 60;
   String _activityNotes = '';
   ActivityGainPreview? _gainPreview;
+  
+  // Notification callbacks
+  Function(int newLevel)? _onLevelUp;
+  Function(int streakDays)? _onStreakMilestone;
 
   ActivityProvider({
     ActivityService? activityService,
@@ -92,6 +96,19 @@ class ActivityProvider extends ChangeNotifier {
       );
 
       if (result.success) {
+        // Handle level up notification
+        if (result.leveledUp && _onLevelUp != null) {
+          _onLevelUp!(result.newLevel);
+        }
+        
+        // Check for streak milestones
+        if (result.activityLog != null) {
+          final streak = await getActivityStreak(result.activityLog!.activityTypeEnum);
+          if (streak > 0 && (streak % 7 == 0 || streak % 30 == 0) && _onStreakMilestone != null) {
+            _onStreakMilestone!(streak);
+          }
+        }
+        
         // Refresh activity data after successful logging
         await Future.wait([
           loadTodaysActivities(),
@@ -330,6 +347,16 @@ class ActivityProvider extends ChangeNotifier {
     }
     
     return streaks;
+  }
+
+  /// Set callback for level up notifications
+  void setLevelUpCallback(Function(int newLevel)? callback) {
+    _onLevelUp = callback;
+  }
+
+  /// Set callback for streak milestone notifications
+  void setStreakMilestoneCallback(Function(int streakDays)? callback) {
+    _onStreakMilestone = callback;
   }
 
   /// Refresh all activity data

@@ -2,10 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import '../models/user.dart';
-import '../models/settings.dart';
 import '../models/enums.dart';
 import '../services/degradation_service.dart';
 import '../services/user_service.dart';
+import '../services/backup_service.dart';
+import '../services/notification_service.dart';
+import '../services/data_integrity_service.dart';
 import '../repositories/user_repository.dart';
 import '../repositories/settings_repository.dart';
 
@@ -13,6 +15,9 @@ import '../repositories/settings_repository.dart';
 class AppLifecycleService extends ChangeNotifier with WidgetsBindingObserver {
   final UserService _userService;
   final SettingsRepository _settingsRepository;
+  final BackupService _backupService;
+  final NotificationService _notificationService;
+  final DataIntegrityService _dataIntegrityService;
   
   AppLifecycleState _currentState = AppLifecycleState.resumed;
   DateTime? _lastPausedTime;
@@ -22,12 +27,21 @@ class AppLifecycleService extends ChangeNotifier with WidgetsBindingObserver {
   bool _hasPendingDegradation = false;
   List<DegradationWarning> _degradationWarnings = [];
   Map<StatType, double> _pendingDegradation = {};
+  
+  // Data integrity results
+  DataIntegrityResult? _lastIntegrityCheck;
 
   AppLifecycleService({
     UserService? userService,
     SettingsRepository? settingsRepository,
+    BackupService? backupService,
+    NotificationService? notificationService,
+    DataIntegrityService? dataIntegrityService,
   }) : _userService = userService ?? UserService(UserRepository()),
-       _settingsRepository = settingsRepository ?? SettingsRepository();
+       _settingsRepository = settingsRepository ?? SettingsRepository(),
+       _backupService = backupService ?? BackupService(),
+       _notificationService = notificationService ?? NotificationService(),
+       _dataIntegrityService = dataIntegrityService ?? DataIntegrityService();
 
   // Getters
   AppLifecycleState get currentState => _currentState;
@@ -36,6 +50,7 @@ class AppLifecycleService extends ChangeNotifier with WidgetsBindingObserver {
   bool get hasPendingDegradation => _hasPendingDegradation;
   List<DegradationWarning> get degradationWarnings => List.unmodifiable(_degradationWarnings);
   Map<StatType, double> get pendingDegradation => Map.unmodifiable(_pendingDegradation);
+  DataIntegrityResult? get lastIntegrityCheck => _lastIntegrityCheck;
 
   /// Initialize the app lifecycle service
   Future<void> initialize() async {
@@ -44,6 +59,9 @@ class AppLifecycleService extends ChangeNotifier with WidgetsBindingObserver {
     try {
       // Add this as an observer for app lifecycle changes
       WidgetsBinding.instance.addObserver(this);
+      
+      // Perform data integrity check and recovery on startup
+      await _performStartupIntegrityCheck();
       
       // Perform initial degradation check
       await _performDegradationCheck();
@@ -96,6 +114,26 @@ class AppLifecycleService extends ChangeNotifier with WidgetsBindingObserver {
   void _handleAppPaused() {
     _lastPausedTime = DateTime.now();
     debugPrint('App paused at: $_lastPausedTime');
+    
+    // Create automatic backup when app is paused
+    _createAutomaticBackup().catchError((error) {
+      debugPrint('Error during automatic backup: $error');
+    });
+  }
+
+  /// Create automatic backup if needed
+  Future<void> _createAutomaticBackup() async {
+    try {
+      final backupFile = await _backupService.createAutomaticBackup();
+      if (backupFile != null) {
+        debugPrint('Automatic backup created: ${backupFile.path}');
+        
+        // Clean up old backups to save space
+        await _backupService.cleanupOldBackups(keepCount: 5);
+      }
+    } catch (e) {
+      debugPrint('Failed to create automatic backup: $e');
+    }
   }
 
   /// Handle app being resumed from background
@@ -110,6 +148,7 @@ class AppLifecycleService extends ChangeNotifier with WidgetsBindingObserver {
       // Perform degradation check asynchronously
       _performDegradationCheck().catchError((error) {
         debugPrint('Error during degradation check on resume: $error');
+        return DegradationCheckResult.error(error.toString());
       });
     }
   }
@@ -150,6 +189,11 @@ class AppLifecycleService extends ChangeNotifier with WidgetsBindingObserver {
       _degradationWarnings = warnings;
       _pendingDegradation = pendingDegradation;
 
+      // Send degradation warning notifications if enabled
+      if (warnings.isNotEmpty && settings.degradationWarningsEnabled && settings.notificationsEnabled) {
+        await _sendDegradationWarningNotifications(warnings);
+      }
+
       // Apply degradation if necessary
       if (hasPending && pendingDegradation.isNotEmpty) {
         await _applyDegradation(user, pendingDegradation, relaxedWeekendMode);
@@ -177,7 +221,7 @@ class AppLifecycleService extends ChangeNotifier with WidgetsBindingObserver {
   ) async {
     try {
       // Apply degradation using the service
-      final updatedUser = DegradationService.applyDegradation(
+      DegradationService.applyDegradation(
         user,
         relaxedWeekendMode: relaxedWeekendMode,
       );
@@ -221,6 +265,133 @@ class AppLifecycleService extends ChangeNotifier with WidgetsBindingObserver {
     _hasPendingDegradation = false;
     _pendingDegradation.clear();
     notifyListeners();
+  }
+
+  /// Send degradation warning notifications
+  Future<void> _sendDegradationWarningNotifications(List<DegradationWarning> warnings) async {
+    try {
+      for (final warning in warnings) {
+        final missedActivities = _getActivityTypesForWarning(warning);
+        await _notificationService.scheduleDegradationWarning(
+          missedActivities: missedActivities,
+          daysMissed: warning.daysSinceLastActivity,
+        );
+      }
+    } catch (e) {
+      debugPrint('Failed to send degradation warning notifications: $e');
+    }
+  }
+
+  /// Get activity types that are causing degradation warning
+  List<ActivityType> _getActivityTypesForWarning(DegradationWarning warning) {
+    // Map stat types back to activity types that affect them
+    final activityTypes = <ActivityType>[];
+    
+    for (final statType in warning.affectedStats) {
+      switch (statType) {
+        case StatType.strength:
+        case StatType.endurance:
+          if (!activityTypes.contains(ActivityType.workoutWeights)) {
+            activityTypes.add(ActivityType.workoutWeights);
+          }
+          if (!activityTypes.contains(ActivityType.workoutCardio)) {
+            activityTypes.add(ActivityType.workoutCardio);
+          }
+          break;
+        case StatType.agility:
+          if (!activityTypes.contains(ActivityType.workoutCardio)) {
+            activityTypes.add(ActivityType.workoutCardio);
+          }
+          if (!activityTypes.contains(ActivityType.workoutYoga)) {
+            activityTypes.add(ActivityType.workoutYoga);
+          }
+          break;
+        case StatType.intelligence:
+          if (!activityTypes.contains(ActivityType.studySerious)) {
+            activityTypes.add(ActivityType.studySerious);
+          }
+          if (!activityTypes.contains(ActivityType.studyCasual)) {
+            activityTypes.add(ActivityType.studyCasual);
+          }
+          break;
+        case StatType.focus:
+          if (!activityTypes.contains(ActivityType.studySerious)) {
+            activityTypes.add(ActivityType.studySerious);
+          }
+          if (!activityTypes.contains(ActivityType.workoutYoga)) {
+            activityTypes.add(ActivityType.workoutYoga);
+          }
+          break;
+        case StatType.charisma:
+          // Charisma doesn't degrade according to requirements
+          break;
+      }
+    }
+    
+    return activityTypes;
+  }
+
+  /// Perform startup data integrity check and recovery
+  Future<void> _performStartupIntegrityCheck() async {
+    try {
+      debugPrint('Performing startup data integrity check...');
+      
+      // Run comprehensive integrity check
+      final integrityResult = await _dataIntegrityService.performIntegrityCheck();
+      _lastIntegrityCheck = integrityResult;
+      
+      if (!integrityResult.success) {
+        debugPrint('Data integrity check failed: ${integrityResult.issues.length} issues found');
+        
+        // Log critical issues
+        for (final issue in integrityResult.issues) {
+          if (issue.severity == DataIntegritySeverity.critical) {
+            debugPrint('CRITICAL: ${issue.description}');
+          }
+        }
+        
+        // If there are critical issues that couldn't be auto-fixed, 
+        // the app should handle this gracefully (e.g., show recovery UI)
+        if (integrityResult.requiresUserAction) {
+          debugPrint('Data integrity issues require user action');
+        }
+      } else {
+        debugPrint('Data integrity check passed');
+        if (integrityResult.fixesApplied.isNotEmpty) {
+          debugPrint('Applied ${integrityResult.fixesApplied.length} automatic fixes');
+          for (final fix in integrityResult.fixesApplied) {
+            debugPrint('  - $fix');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Startup integrity check failed: $e');
+      // Continue with app initialization even if integrity check fails
+      // The app should still be usable, though data might be inconsistent
+    }
+  }
+
+  /// Get the result of the last data integrity check
+  DataIntegrityResult? getLastIntegrityCheckResult() {
+    return _lastIntegrityCheck;
+  }
+
+  /// Manually trigger data integrity check
+  Future<DataIntegrityResult> performManualIntegrityCheck() async {
+    final result = await _dataIntegrityService.performIntegrityCheck();
+    _lastIntegrityCheck = result;
+    notifyListeners();
+    return result;
+  }
+
+  /// Check if the app has recovered from a crash
+  bool get hasRecoveredFromCrash {
+    return _lastIntegrityCheck?.fixesApplied.isNotEmpty ?? false;
+  }
+
+  /// Check if there are unresolved data integrity issues
+  bool get hasUnresolvedDataIssues {
+    return _lastIntegrityCheck?.requiresUserAction ?? false;
   }
 
   /// Force refresh degradation status
