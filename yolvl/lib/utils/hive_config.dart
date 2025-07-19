@@ -71,4 +71,24 @@ class HiveConfig {
   static Future<void> closeBoxes() async {
     await Hive.close();
   }
+
+  /// Clear all data from all boxes (for testing)
+  static Future<void> clearAllData() async {
+    try {
+      if (Hive.isBoxOpen(userBoxName)) {
+        await Hive.box<User>(userBoxName).clear();
+      }
+      if (Hive.isBoxOpen(activityBoxName)) {
+        await Hive.box<ActivityLog>(activityBoxName).clear();
+      }
+      if (Hive.isBoxOpen(settingsBoxName)) {
+        await Hive.box<Settings>(settingsBoxName).clear();
+      }
+      if (Hive.isBoxOpen(achievementBoxName)) {
+        await Hive.box<Achievement>(achievementBoxName).clear();
+      }
+    } catch (e) {
+      // Ignore errors during cleanup
+    }
+  }
 }

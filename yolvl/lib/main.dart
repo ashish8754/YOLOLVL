@@ -8,6 +8,7 @@ import 'providers/activity_provider.dart';
 import 'providers/settings_provider.dart';
 import 'providers/achievement_provider.dart';
 import 'screens/main_navigation_screen.dart';
+import 'screens/onboarding_screen.dart';
 
 void main() async {
   // Ensure Flutter binding is initialized
@@ -42,7 +43,7 @@ class YolvlApp extends StatelessWidget {
             darkTheme: _buildDarkTheme(),
             themeMode: settingsProvider.themeMode,
             home: HighContrastTheme(
-              child: const MainNavigationScreen(),
+              child: const AppInitializer(),
             ),
             debugShowCheckedModeBanner: false,
             builder: (context, child) {
@@ -96,6 +97,152 @@ class YolvlApp extends StatelessWidget {
       ),
       useMaterial3: true,
       fontFamily: 'Roboto',
+    );
+  }
+}
+
+/// Widget that handles app initialization and routing to onboarding or main app
+class AppInitializer extends StatefulWidget {
+  const AppInitializer({super.key});
+
+  @override
+  State<AppInitializer> createState() => _AppInitializerState();
+}
+
+class _AppInitializerState extends State<AppInitializer> {
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeApp();
+    });
+  }
+
+  Future<void> _initializeApp() async {
+    final userProvider = context.read<UserProvider>();
+    final settingsProvider = context.read<SettingsProvider>();
+    
+    try {
+      // Initialize settings first
+      await settingsProvider.initialize();
+      
+      // Initialize user data
+      await userProvider.initializeApp();
+      
+      setState(() {
+        _isInitialized = true;
+      });
+    } catch (e) {
+      debugPrint('Error initializing app: $e');
+      setState(() {
+        _isInitialized = true;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isInitialized) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.auto_awesome,
+                size: 80,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Solo Leveling',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Level up your life',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+              const SizedBox(height: 48),
+              CircularProgressIndicator(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Consumer<UserProvider>(
+      builder: (context, userProvider, child) {
+        if (userProvider.isLoading) {
+          return Scaffold(
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            body: const Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (userProvider.errorMessage != null) {
+          return Scaffold(
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Failed to initialize app',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    userProvider.errorMessage!,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: _initializeApp,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // Check if user needs onboarding
+        if (userProvider.needsOnboarding || !userProvider.hasUser) {
+          return const OnboardingScreen();
+        }
+
+        // User is ready, show main app
+        return const MainNavigationScreen();
+      },
     );
   }
 }
