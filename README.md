@@ -22,8 +22,25 @@ Unlike punitive habit trackers, YoLvL focuses on **positive reinforcement** and 
 
 ## 📱 Screenshots
 
-<!-- Space reserved for UI screenshots -->
-*[Screenshots of the dashboard, activity logging, stats progression, and achievements screens will be added here]*
+### App Interface Overview
+
+<div align="center">
+
+**Dashboard & Main Interface**
+
+<img src="Screenshot_20250720-123611.png" width="250" alt="Dashboard Screen" />
+<img src="Screenshot_20250720-123626.png" width="250" alt="Stats Overview" />
+<img src="Screenshot_20250720-123633.png" width="250" alt="Activity Logging" />
+
+**Progress Tracking & Analytics**
+
+<img src="Screenshot_20250720-123637.png" width="250" alt="Progress Charts" />
+<img src="Screenshot_20250720-123641.png" width="250" alt="History View" />
+<img src="Screenshot_20250720-123646.png" width="250" alt="Settings Panel" />
+
+</div>
+
+*Experience the Solo Leveling-inspired interface with dark theme, smooth animations, and intuitive progression tracking*
 
 ---
 
