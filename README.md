@@ -91,16 +91,18 @@ EXP Threshold = 1000 × (1.2^(level-1))
 
 ### Prerequisites
 
-Before building the project on your local Mac machine, ensure you have the following installed:
+Before building the project on your local machine, ensure you have the following installed based on your operating system:
 
-#### Required Software
+#### For macOS Development
+
+**Required Software:**
 - **macOS** (Monterey 12.0 or later recommended)
 - **Xcode** 14.0+ (for iOS development)
 - **Android Studio** (for Android development)
 - **Flutter SDK** 3.19.0 or later
 - **Git** for version control
 
-#### Development Environment Setup
+**Development Environment Setup:**
 
 1. **Install Flutter**
    ```bash
@@ -126,6 +128,60 @@ Before building the project on your local Mac machine, ensure you have the follo
    ```bash
    sudo gem install cocoapods
    ```
+
+#### For Windows Development
+
+**Required Software:**
+- **Windows 10** (version 1903 or later) or **Windows 11**
+- **Android Studio** (for Android development)
+- **Visual Studio 2022** (for Windows desktop development - optional)
+- **Flutter SDK** 3.19.0 or later
+- **Git for Windows**
+- **PowerShell 5.0** or later (usually pre-installed)
+
+**Development Environment Setup:**
+
+1. **Install Flutter**
+   ```powershell
+   # Using Chocolatey (recommended)
+   choco install flutter
+   
+   # Or download directly from https://flutter.dev/docs/get-started/install/windows
+   # Extract to C:\src\flutter and add C:\src\flutter\bin to PATH
+   ```
+
+2. **Install Android Studio**
+   - Download from: https://developer.android.com/studio
+   - During installation, make sure to include:
+     - Android SDK
+     - Android SDK Platform-Tools
+     - Android SDK Build-Tools
+     - Android Emulator
+   - Create an Android Virtual Device (AVD) for testing
+
+3. **Install Git for Windows**
+   ```powershell
+   # Using Chocolatey
+   choco install git
+   
+   # Or download from: https://git-scm.com/download/win
+   ```
+
+4. **Configure Android SDK (if needed)**
+   ```powershell
+   # Add to PATH if not automatically configured
+   # Android SDK: C:\Users\[username]\AppData\Local\Android\Sdk
+   # Platform tools: C:\Users\[username]\AppData\Local\Android\Sdk\platform-tools
+   ```
+
+5. **Enable Developer Mode (Windows 10/11)**
+   - Go to Settings → Update & Security → For developers
+   - Turn on "Developer mode"
+
+**Note for Windows Users:**
+- iOS development is **not available on Windows** (requires macOS and Xcode)
+- You can build Android APKs and Windows desktop applications
+- For iOS builds, you'll need access to a Mac machine or macOS virtual machine
 
 ### 🔧 Project Setup
 
