@@ -212,24 +212,31 @@ class ActivityProvider extends ChangeNotifier {
     }
   }
 
-  /// Delete an activity
+  /// Delete an activity with stat reversal
   Future<bool> deleteActivity(String activityId) async {
     _setLoading(true);
     _clearError();
 
     try {
-      final success = await _activityService.deleteActivity(activityId);
+      final result = await _activityService.deleteActivityWithStatReversal(activityId);
       
-      if (success) {
-        // Refresh activity data after deletion
-        await Future.wait([
-          loadTodaysActivities(),
-          loadRecentActivities(),
-          loadActivityHistory(),
-        ]);
+      if (result.success) {
+        // Immediately remove the activity from local lists for instant UI update
+        _activityHistory.removeWhere((activity) => activity.id == activityId);
+        _todaysActivities.removeWhere((activity) => activity.id == activityId);
+        _recentActivities.removeWhere((activity) => activity.id == activityId);
+        
+        // Notify listeners immediately for instant UI update
+        notifyListeners();
+        
+        // Then refresh data from repository to ensure consistency
+        await refreshAfterDeletion();
+        
+        return true;
+      } else {
+        _setError(result.errorMessage ?? 'Failed to delete activity');
+        return false;
       }
-      
-      return success;
     } catch (e) {
       _setError('Failed to delete activity: $e');
       return false;
@@ -349,6 +356,52 @@ class ActivityProvider extends ChangeNotifier {
     }
     
     return streaks;
+  }
+
+  /// Get a specific activity by ID
+  ActivityLog? getActivityById(String activityId) {
+    // Check in activity history first
+    for (final activity in _activityHistory) {
+      if (activity.id == activityId) {
+        return activity;
+      }
+    }
+    
+    // Check in today's activities
+    for (final activity in _todaysActivities) {
+      if (activity.id == activityId) {
+        return activity;
+      }
+    }
+    
+    // Check in recent activities
+    for (final activity in _recentActivities) {
+      if (activity.id == activityId) {
+        return activity;
+      }
+    }
+    
+    return null;
+  }
+
+  /// Check if an activity exists in any of the loaded lists
+  bool hasActivity(String activityId) {
+    return getActivityById(activityId) != null;
+  }
+
+  /// Refresh activity lists after deletion to ensure UI consistency
+  Future<void> refreshAfterDeletion() async {
+    try {
+      // Reload all activity data to ensure consistency
+      await Future.wait([
+        loadTodaysActivities(),
+        loadRecentActivities(),
+        loadActivityHistory(),
+        loadActivityStats(),
+      ]);
+    } catch (e) {
+      _setError('Failed to refresh activities after deletion: $e');
+    }
   }
 
   /// Set callback for level up notifications

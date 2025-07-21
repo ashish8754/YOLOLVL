@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../providers/user_provider.dart';
 import '../models/enums.dart';
 import '../screens/stats_progression_screen.dart';
+import '../services/stats_service.dart';
 import '../utils/accessibility_helper.dart';
 import '../utils/page_transitions.dart';
 
@@ -198,8 +199,9 @@ class _StatsOverviewChartState extends State<StatsOverviewChart>
                                 ),
                                 getTooltipItem: (group, groupIndex, rod, rodIndex) {
                                   final statType = StatType.values[group.x.toInt()];
+                                  final statValue = stats[statType] ?? 1.0;
                                   return BarTooltipItem(
-                                    '${statType.displayName}\n${rod.toY.toStringAsFixed(2)}',
+                                    '${statType.displayName}\n${_formatStatValue(statValue)}',
                                     TextStyle(
                                       color: Theme.of(context).colorScheme.onSurface,
                                       fontWeight: FontWeight.bold,
@@ -309,7 +311,7 @@ class _StatsOverviewChartState extends State<StatsOverviewChart>
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '${statType.icon} ${value.toStringAsFixed(1)}',
+                              '${statType.icon} ${_formatStatValue(value)}',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
@@ -361,7 +363,7 @@ class _StatsOverviewChartState extends State<StatsOverviewChart>
                                     ),
                                   ),
                                   Text(
-                                    value.toStringAsFixed(2),
+                                    _formatStatValue(value),
                                     style: AccessibilityHelper.getAccessibleTextStyle(
                                       context,
                                       TextStyle(
@@ -392,7 +394,7 @@ class _StatsOverviewChartState extends State<StatsOverviewChart>
   String _getStatsSemanticDescription(Map<StatType, double> stats) {
     final descriptions = StatType.values.map((statType) {
       final value = stats[statType] ?? 1.0;
-      return '${statType.displayName}: ${value.toStringAsFixed(2)}';
+      return '${statType.displayName}: ${_formatStatValue(value)}';
     }).join(', ');
     return descriptions;
   }
@@ -445,12 +447,87 @@ class _StatsOverviewChartState extends State<StatsOverviewChart>
     }
   }
 
-  /// Get maximum stat value for chart scaling
+  /// Get maximum stat value for chart scaling with validation and dynamic auto-scaling
   double _getMaxStatValue(Map<StatType, double> stats) {
     if (stats.isEmpty) return 5.0;
     
-    final maxValue = stats.values.reduce((a, b) => a > b ? a : b);
-    // Round up to next integer and add some padding
-    return (maxValue + 1).ceilToDouble();
+    // Validate stats for chart rendering with enhanced infinite stats validation
+    final validationResult = StatsService.validateStatsForChart(stats);
+    
+    if (!validationResult.isValid) {
+      // Log error and use safe default
+      print('Chart validation failed: ${validationResult.message}');
+      return 5.0;
+    }
+    
+    if (validationResult.hasWarning) {
+      // Log warning but continue with recommended value
+      print('Chart validation warning: ${validationResult.message}');
+    }
+    
+    // Also run comprehensive validation for infinite stats system
+    final infiniteStatsResult = StatsService.validateInfiniteStats(stats);
+    if (!infiniteStatsResult.isValid) {
+      print('Infinite stats validation failed: ${infiniteStatsResult.message}');
+      // Use sanitized stats if available
+      if (infiniteStatsResult.sanitizedStats != null) {
+        final sanitizedValidation = StatsService.validateStatsForChart(infiniteStatsResult.sanitizedStats!);
+        return sanitizedValidation.recommendedMaxY;
+      }
+      return 5.0;
+    }
+    
+    return validationResult.recommendedMaxY;
+  }
+
+  /// Calculate appropriate chart maximum using dynamic scaling
+  /// Uses increments of 5, 10, 15, 20, etc. for better readability
+  /// Now handles extreme values safely
+  double _calculateChartMaximum(double maxStatValue) {
+    // Validate the input value first
+    if (maxStatValue.isNaN || maxStatValue.isInfinite || maxStatValue < 0) {
+      print('Invalid max stat value for chart: $maxStatValue, using default');
+      return 5.0;
+    }
+    
+    // For values up to 5, use 5 as the ceiling (original behavior)
+    if (maxStatValue <= 5.0) {
+      return 5.0;
+    }
+    
+    // For values above 5, use appropriate increments based on magnitude
+    if (maxStatValue <= 100.0) {
+      // Use increments of 5 for values 5-100
+      final increment = 5.0;
+      return (maxStatValue / increment).ceil() * increment;
+    } else if (maxStatValue <= 1000.0) {
+      // Use increments of 50 for values 100-1000
+      final increment = 50.0;
+      return (maxStatValue / increment).ceil() * increment;
+    } else {
+      // Use increments of 500 for very large values
+      final increment = 500.0;
+      return (maxStatValue / increment).ceil() * increment;
+    }
+  }
+
+  /// Format stat value with appropriate decimal precision
+  /// Shows meaningful precision without trailing zeros (e.g., 7.23 instead of 7.2300)
+  String _formatStatValue(double value) {
+    // For whole numbers, show no decimal places
+    if (value == value.roundToDouble()) {
+      return value.toStringAsFixed(0);
+    }
+    
+    // For values with decimals, show up to 2 decimal places but remove trailing zeros
+    String formatted = value.toStringAsFixed(2);
+    
+    // Remove trailing zeros after decimal point
+    if (formatted.contains('.')) {
+      formatted = formatted.replaceAll(RegExp(r'0*$'), '');
+      formatted = formatted.replaceAll(RegExp(r'\.$'), '');
+    }
+    
+    return formatted;
   }
 }

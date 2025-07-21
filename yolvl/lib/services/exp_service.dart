@@ -102,6 +102,137 @@ class EXPService {
     final threshold = calculateEXPThreshold(user.level);
     return (threshold - user.currentEXP).clamp(0.0, threshold);
   }
+
+  /// Handle EXP reversal for activity deletion
+  /// Removes EXP and handles level-down scenarios if necessary
+  static User handleEXPReversal(User user, double expToReverse) {
+    if (expToReverse < 0) {
+      throw ArgumentError('EXP to reverse must be non-negative');
+    }
+
+    if (expToReverse == 0) {
+      return user; // No EXP to reverse
+    }
+
+    // Calculate new EXP after reversal
+    double newEXP = user.currentEXP - expToReverse;
+    int newLevel = user.level;
+
+    // Handle level-down scenarios
+    while (newEXP < 0 && newLevel > 1) {
+      // Move to previous level
+      newLevel--;
+      final previousLevelThreshold = calculateEXPThreshold(newLevel);
+      newEXP += previousLevelThreshold;
+    }
+
+    // Ensure EXP doesn't go below 0 and level doesn't go below 1
+    newEXP = newEXP < 0 ? 0 : newEXP;
+    newLevel = newLevel < 1 ? 1 : newLevel;
+
+    return user.copyWith(
+      level: newLevel,
+      currentEXP: newEXP,
+    );
+  }
+
+  /// Calculate level-down information for preview purposes
+  /// Returns information about what would happen if EXP is reversed
+  static LevelDownResult calculateLevelDown(User user, double expToReverse) {
+    if (expToReverse < 0) {
+      throw ArgumentError('EXP to reverse must be non-negative');
+    }
+
+    if (expToReverse == 0) {
+      return LevelDownResult(
+        willLevelDown: false,
+        newLevel: user.level,
+        newEXP: user.currentEXP,
+        levelsLost: 0,
+      );
+    }
+
+    double newEXP = user.currentEXP - expToReverse;
+    int newLevel = user.level;
+    int levelsLost = 0;
+
+    // Calculate level-down scenarios
+    while (newEXP < 0 && newLevel > 1) {
+      newLevel--;
+      levelsLost++;
+      final previousLevelThreshold = calculateEXPThreshold(newLevel);
+      newEXP += previousLevelThreshold;
+    }
+
+    // Ensure EXP doesn't go below 0 and level doesn't go below 1
+    newEXP = newEXP < 0 ? 0 : newEXP;
+    newLevel = newLevel < 1 ? 1 : newLevel;
+
+    return LevelDownResult(
+      willLevelDown: levelsLost > 0,
+      newLevel: newLevel,
+      newEXP: newEXP,
+      levelsLost: levelsLost,
+    );
+  }
+
+  /// Validate EXP reversal operation
+  /// Returns true if reversal is safe to apply
+  static bool validateEXPReversal(User user, double expToReverse) {
+    try {
+      // Validate input parameters
+      if (expToReverse < 0) {
+        _logError('validateEXPReversal', 'Negative EXP reversal amount: $expToReverse');
+        return false;
+      }
+
+      if (expToReverse.isNaN || expToReverse.isInfinite) {
+        _logError('validateEXPReversal', 'Invalid EXP reversal amount: $expToReverse');
+        return false;
+      }
+
+      // Validate user data
+      if (user.currentEXP.isNaN || user.currentEXP.isInfinite) {
+        _logError('validateEXPReversal', 'Invalid current EXP value: ${user.currentEXP}');
+        return false;
+      }
+
+      if (user.level < 1) {
+        _logError('validateEXPReversal', 'Invalid user level: ${user.level}');
+        return false;
+      }
+
+      // Check for extreme reversal amounts that might indicate data corruption
+      if (expToReverse > 1000000) { // 1 million EXP seems excessive for a single activity
+        _logWarning('validateEXPReversal', 'Very large EXP reversal amount: $expToReverse');
+      }
+
+      // Calculate what would happen after reversal
+      final levelDownResult = calculateLevelDown(user, expToReverse);
+      
+      // Validate the calculated result
+      if (levelDownResult.newLevel < 1) {
+        _logError('validateEXPReversal', 'Level-down calculation resulted in invalid level: ${levelDownResult.newLevel}');
+        return false;
+      }
+
+      if (levelDownResult.newEXP.isNaN || levelDownResult.newEXP.isInfinite) {
+        _logError('validateEXPReversal', 'Level-down calculation resulted in invalid EXP: ${levelDownResult.newEXP}');
+        return false;
+      }
+
+      // Log significant level-downs for monitoring
+      if (levelDownResult.levelsLost > 5) {
+        _logWarning('validateEXPReversal', 
+          'Significant level-down detected: ${levelDownResult.levelsLost} levels (${user.level} -> ${levelDownResult.newLevel})');
+      }
+
+      return true; // EXP reversal is valid
+    } catch (e) {
+      _logError('validateEXPReversal', 'Exception during validation: $e');
+      return false;
+    }
+  }
 }
 
 /// Result of level-up check
@@ -121,5 +252,46 @@ class LevelUpResult {
   @override
   String toString() {
     return 'LevelUpResult(canLevelUp: $canLevelUp, newLevel: $newLevel, excessEXP: $excessEXP, levelsGained: $levelsGained)';
+  }
+}
+
+/// Result of level-down calculation
+class LevelDownResult {
+  final bool willLevelDown;
+  final int newLevel;
+  final double newEXP;
+  final int levelsLost;
+
+  const LevelDownResult({
+    required this.willLevelDown,
+    required this.newLevel,
+    required this.newEXP,
+    required this.levelsLost,
+  });
+
+  @override
+  String toString() {
+    return 'LevelDownResult(willLevelDown: $willLevelDown, newLevel: $newLevel, newEXP: $newEXP, levelsLost: $levelsLost)';
+  }
+
+  /// Log error messages with context
+  static void _logError(String method, String message) {
+    final timestamp = DateTime.now().toIso8601String();
+    final logMessage = '[$timestamp] ERROR EXPService.$method: $message';
+    print(logMessage); // In production, use proper logging framework
+  }
+
+  /// Log warning messages with context
+  static void _logWarning(String method, String message) {
+    final timestamp = DateTime.now().toIso8601String();
+    final logMessage = '[$timestamp] WARNING EXPService.$method: $message';
+    print(logMessage); // In production, use proper logging framework
+  }
+
+  /// Log info messages with context
+  static void _logInfo(String method, String message) {
+    final timestamp = DateTime.now().toIso8601String();
+    final logMessage = '[$timestamp] INFO EXPService.$method: $message';
+    print(logMessage); // In production, use proper logging framework
   }
 }

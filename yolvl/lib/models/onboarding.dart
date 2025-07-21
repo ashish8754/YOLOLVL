@@ -82,7 +82,8 @@ class OnboardingAnswers {
     final workoutAnswer = getAnswer<int>('workout_frequency');
     if (workoutAnswer != null) {
       // Scale 0-7 to 1-5: (value / 7) * 4 + 1
-      stats[StatType.endurance] = ((workoutAnswer / 7) * 4 + 1).clamp(1.0, 5.0);
+      final scaledValue = (workoutAnswer / 7) * 4 + 1;
+      stats[StatType.endurance] = scaledValue < 1.0 ? 1.0 : scaledValue;
     }
 
     // Agility/flexibility level (1-10) -> Agility (1-5)
@@ -110,7 +111,8 @@ class OnboardingAnswers {
     if (habitAnswer != null) {
       // This also contributes to focus
       final habitFocus = _scaleToStatValue(habitAnswer);
-      stats[StatType.focus] = ((stats[StatType.focus]! + habitFocus) / 2).clamp(1.0, 5.0);
+      final averageFocus = (stats[StatType.focus]! + habitFocus) / 2;
+      stats[StatType.focus] = averageFocus < 1.0 ? 1.0 : averageFocus;
     }
 
     // Social charisma/confidence (1-10) -> Charisma (1-5)
@@ -125,7 +127,8 @@ class OnboardingAnswers {
   /// Convert 1-10 scale to 1-5 stat value
   double _scaleToStatValue(int scaleValue) {
     // Scale 1-10 to 1-5: ((value - 1) / 9) * 4 + 1
-    return (((scaleValue - 1) / 9) * 4 + 1).clamp(1.0, 5.0);
+    final scaledValue = ((scaleValue - 1) / 9) * 4 + 1;
+    return scaledValue < 1.0 ? 1.0 : scaledValue;
   }
 
   @override

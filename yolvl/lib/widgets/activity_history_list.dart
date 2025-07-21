@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/activity_log.dart';
-import '../models/enums.dart';
 
 /// Widget for displaying a list of activity logs with pagination
 class ActivityHistoryList extends StatelessWidget {
@@ -9,6 +9,7 @@ class ActivityHistoryList extends StatelessWidget {
   final bool isLoadingMore;
   final bool hasMoreData;
   final Function(String) onDeleteActivity;
+  final bool isDeleting;
 
   const ActivityHistoryList({
     super.key,
@@ -17,15 +18,18 @@ class ActivityHistoryList extends StatelessWidget {
     required this.isLoadingMore,
     required this.hasMoreData,
     required this.onDeleteActivity,
+    this.isDeleting = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      controller: scrollController,
-      padding: const EdgeInsets.all(16),
-      itemCount: activities.length + (hasMoreData ? 1 : 0),
-      itemBuilder: (context, index) {
+    return Stack(
+      children: [
+        ListView.builder(
+          controller: scrollController,
+          padding: const EdgeInsets.all(16),
+          itemCount: activities.length + (hasMoreData ? 1 : 0),
+          itemBuilder: (context, index) {
         if (index == activities.length) {
           // Loading indicator at the bottom
           return Container(
@@ -67,7 +71,25 @@ class ActivityHistoryList extends StatelessWidget {
             const SizedBox(height: 8),
           ],
         );
-      },
+          },
+        ),
+        // Show a subtle loading indicator when deleting
+        if (isDeleting && activities.isNotEmpty)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SizedBox(
+              height: 3,
+              child: LinearProgressIndicator(
+                backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -97,8 +119,8 @@ class ActivityHistoryList extends StatelessWidget {
   }
 }
 
-/// Individual activity card widget
-class ActivityHistoryCard extends StatelessWidget {
+/// Individual activity card widget with swipe-to-delete functionality
+class ActivityHistoryCard extends StatefulWidget {
   final ActivityLog activity;
   final VoidCallback onDelete;
 
@@ -109,17 +131,63 @@ class ActivityHistoryCard extends StatelessWidget {
   });
 
   @override
+  State<ActivityHistoryCard> createState() => _ActivityHistoryCardState();
+}
+
+class _ActivityHistoryCardState extends State<ActivityHistoryCard> {
+  bool _isDeleting = false;
+
+  @override
   Widget build(BuildContext context) {
-    final activityType = activity.activityTypeEnum;
+    final activityType = widget.activity.activityTypeEnum;
     
-    return Card(
-      color: Theme.of(context).colorScheme.surfaceContainer,
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    return Dismissible(
+      key: Key(widget.activity.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.error,
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Icon(
+              Icons.delete_sweep,
+              color: Theme.of(context).colorScheme.onError,
+              size: 28,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Delete & Reverse',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onError,
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+      confirmDismiss: (direction) async {
+        return await _showDeleteConfirmation(context);
+      },
+      onDismissed: (direction) {
+        _handleDelete();
+      },
+      child: Card(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+        elevation: 2,
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
             // Header row with activity type and time
             Row(
               children: [
@@ -142,7 +210,7 @@ class ActivityHistoryCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        _formatTime(activity.timestamp),
+                        _formatTime(widget.activity.timestamp),
                         style: TextStyle(
                           fontSize: 12,
                           color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
@@ -151,27 +219,39 @@ class ActivityHistoryCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                PopupMenuButton<String>(
-                  onSelected: (value) {
-                    if (value == 'delete') {
-                      onDelete();
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, size: 16),
-                          SizedBox(width: 8),
-                          Text('Delete'),
-                        ],
+                GestureDetector(
+                  onLongPress: () => _handleLongPress(context),
+                  child: PopupMenuButton<String>(
+                    onSelected: (value) {
+                      if (value == 'delete') {
+                        _handleDelete();
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.delete, 
+                              size: 16,
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Delete',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                    ],
+                    child: Icon(
+                      Icons.more_vert,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
-                  ],
-                  child: Icon(
-                    Icons.more_vert,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -198,7 +278,7 @@ class ActivityHistoryCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        activity.formattedDuration,
+                        widget.activity.formattedDuration,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -225,7 +305,7 @@ class ActivityHistoryCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '+${activity.expGained.toInt()} EXP',
+                        '+${widget.activity.expGained.toInt()} EXP',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -239,12 +319,12 @@ class ActivityHistoryCard extends StatelessWidget {
             ),
             
             // Stat gains
-            if (activity.statGainsMap.isNotEmpty) ...[
+            if (widget.activity.statGainsMap.isNotEmpty) ...[
               const SizedBox(height: 12),
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
-                children: activity.statGainsMap.entries.map((entry) {
+                children: widget.activity.statGainsMap.entries.map((entry) {
                   final statType = entry.key;
                   final gain = entry.value;
                   
@@ -268,7 +348,7 @@ class ActivityHistoryCard extends StatelessWidget {
             ],
             
             // Notes
-            if (activity.notes != null && activity.notes!.isNotEmpty) ...[
+            if (widget.activity.notes != null && widget.activity.notes!.isNotEmpty) ...[
               const SizedBox(height: 12),
               Container(
                 width: double.infinity,
@@ -281,7 +361,7 @@ class ActivityHistoryCard extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  activity.notes!,
+                  widget.activity.notes!,
                   style: TextStyle(
                     fontSize: 12,
                     color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
@@ -290,10 +370,183 @@ class ActivityHistoryCard extends StatelessWidget {
                 ),
               ),
             ],
+                ],
+              ),
+            ),
+            // Loading overlay
+            if (_isDeleting)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Deleting...',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
     );
+  }
+
+  Future<bool?> _showDeleteConfirmation(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              Icons.warning,
+              color: Theme.of(context).colorScheme.error,
+              size: 24,
+            ),
+            const SizedBox(width: 8),
+            const Text('Delete Activity'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to delete this ${widget.activity.activityTypeEnum.displayName} activity?',
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.errorContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.onErrorContainer,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'This will reverse:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onErrorContainer,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '• ${widget.activity.expGained.toInt()} EXP',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onErrorContainer,
+                      fontSize: 13,
+                    ),
+                  ),
+                  if (widget.activity.statGainsMap.isNotEmpty)
+                    ...widget.activity.statGainsMap.entries.map((entry) => 
+                      Text(
+                        '• ${entry.key.displayName}: ${entry.value.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onErrorContainer,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'This action cannot be undone.',
+              style: TextStyle(
+                fontSize: 14,
+                fontStyle: FontStyle.italic,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleLongPress(BuildContext context) {
+    // Provide haptic feedback for long press
+    HapticFeedback.mediumImpact();
+    
+    // Show a tooltip or brief message about swipe to delete
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Swipe left to delete this activity'),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        backgroundColor: Theme.of(context).colorScheme.inverseSurface,
+      ),
+    );
+  }
+
+  void _handleDelete() async {
+    if (_isDeleting) return;
+    
+    setState(() {
+      _isDeleting = true;
+    });
+
+    try {
+      widget.onDelete();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isDeleting = false;
+        });
+      }
+    }
   }
 
   String _formatTime(DateTime dateTime) {

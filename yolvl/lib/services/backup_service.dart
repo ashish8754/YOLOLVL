@@ -5,9 +5,11 @@ import 'package:share_plus/share_plus.dart';
 import '../models/user.dart';
 import '../models/activity_log.dart';
 import '../models/settings.dart';
+import '../models/enums.dart';
 import '../repositories/user_repository.dart';
 import '../repositories/activity_repository.dart';
 import '../repositories/settings_repository.dart';
+import 'stats_service.dart';
 
 /// Service for handling data backup and restore operations
 class BackupService {
@@ -23,7 +25,7 @@ class BackupService {
         _activityRepository = activityRepository ?? ActivityRepository(),
         _settingsRepository = settingsRepository ?? SettingsRepository();
 
-  /// Export all user data to JSON format
+  /// Export all user data to JSON format with infinite stats validation
   Future<BackupData> exportData() async {
     try {
       // Get current user
@@ -32,24 +34,85 @@ class BackupService {
         throw BackupException('No user data found to export');
       }
 
+      // Validate user data before export
+      _validateUserDataForExport(user);
+
       // Get all activity logs
       final activities = _activityRepository.findAll();
+
+      // Validate activities before export
+      _validateActivitiesForExport(activities);
 
       // Get settings
       final settings = _settingsRepository.getSettings();
 
       // Create backup data
       final backupData = BackupData(
-        version: '1.0',
+        version: '1.1', // Updated version to support infinite stats
         exportDate: DateTime.now(),
         user: user,
         activities: activities,
         settings: settings,
       );
 
+      _logInfo('exportData', 'Successfully exported data: ${activities.length} activities, user level ${user.level}');
       return backupData;
     } catch (e) {
+      _logError('exportData', 'Failed to export data: $e');
       throw BackupException('Failed to export data: $e');
+    }
+  }
+
+  /// Validate user data before export using enhanced infinite stats validation
+  void _validateUserDataForExport(User user) {
+    // Convert user stats to StatType map for validation
+    final statsMap = <StatType, double>{};
+    for (final entry in user.stats.entries) {
+      try {
+        final statType = StatType.values.firstWhere((st) => st.name == entry.key);
+        statsMap[statType] = entry.value;
+      } catch (e) {
+        _logWarning('_validateUserDataForExport', 'Unknown stat type: ${entry.key}');
+      }
+    }
+
+    // Use enhanced validation for infinite stats system
+    final validationResult = StatsService.validateStatsForExport(statsMap);
+    
+    if (!validationResult.isValid) {
+      throw BackupException('Cannot export user stats: ${validationResult.message}');
+    }
+    
+    if (validationResult.hasWarning) {
+      _logWarning('_validateUserDataForExport', 'Export validation warnings: ${validationResult.warnings.join(', ')}');
+    }
+
+    // Check EXP and level
+    if (user.currentEXP.isNaN || user.currentEXP.isInfinite) {
+      throw BackupException('Cannot export: user has invalid EXP value: ${user.currentEXP}');
+    }
+
+    if (user.level < 1) {
+      throw BackupException('Cannot export: user has invalid level: ${user.level}');
+    }
+  }
+
+  /// Validate activities before export
+  void _validateActivitiesForExport(List<ActivityLog> activities) {
+    for (int i = 0; i < activities.length; i++) {
+      final activity = activities[i];
+      
+      // Check for invalid values
+      if (activity.expGained.isNaN || activity.expGained.isInfinite) {
+        throw BackupException('Cannot export: activity $i has invalid EXP value: ${activity.expGained}');
+      }
+      
+      // Check stat gains
+      for (final entry in activity.statGainsMap.entries) {
+        if (entry.value.isNaN || entry.value.isInfinite) {
+          throw BackupException('Cannot export: activity $i has invalid stat gain for ${entry.key}: ${entry.value}');
+        }
+      }
     }
   }
 
@@ -119,7 +182,7 @@ class BackupService {
     }
   }
 
-  /// Import backup data
+  /// Import backup data with infinite stats support and data sanitization
   Future<void> importData(BackupData backupData, {bool overwrite = false}) async {
     try {
       // Validate backup data
@@ -133,20 +196,124 @@ class BackupService {
         }
       }
 
+      // Sanitize user data before import
+      final sanitizedUser = _sanitizeUserData(backupData.user);
+
+      // Sanitize activities before import
+      final sanitizedActivities = _sanitizeActivities(backupData.activities);
+
       // Import user data
-      await _userRepository.save(backupData.user);
+      await _userRepository.save(sanitizedUser);
 
       // Import activities
-      for (final activity in backupData.activities) {
+      for (final activity in sanitizedActivities) {
         await _activityRepository.save(activity);
       }
 
       // Import settings
       await _settingsRepository.saveSettings(backupData.settings);
 
+      _logInfo('importData', 'Successfully imported data: ${sanitizedActivities.length} activities, user level ${sanitizedUser.level}');
     } catch (e) {
+      _logError('importData', 'Failed to import data: $e');
       throw BackupException('Failed to import data: $e');
     }
+  }
+
+  /// Sanitize user data for safe import with infinite stats support
+  User _sanitizeUserData(User user) {
+    final sanitizedStats = <String, double>{};
+    
+    // Sanitize each stat value
+    for (final entry in user.stats.entries) {
+      final statName = entry.key;
+      final statValue = entry.value;
+      
+      if (statValue.isNaN || statValue.isInfinite) {
+        _logWarning('_sanitizeUserData', 'Sanitizing invalid stat $statName: $statValue -> 1.0');
+        sanitizedStats[statName] = 1.0;
+      } else if (statValue < 1.0) {
+        _logWarning('_sanitizeUserData', 'Sanitizing low stat $statName: $statValue -> 1.0');
+        sanitizedStats[statName] = 1.0;
+      } else if (statValue > 1000000) {
+        _logWarning('_sanitizeUserData', 'Sanitizing extremely large stat $statName: $statValue -> 1000000');
+        sanitizedStats[statName] = 1000000.0;
+      } else {
+        sanitizedStats[statName] = statValue;
+      }
+    }
+
+    // Sanitize EXP and level
+    double sanitizedEXP = user.currentEXP;
+    if (sanitizedEXP.isNaN || sanitizedEXP.isInfinite || sanitizedEXP < 0) {
+      _logWarning('_sanitizeUserData', 'Sanitizing invalid EXP: ${user.currentEXP} -> 0.0');
+      sanitizedEXP = 0.0;
+    }
+
+    int sanitizedLevel = user.level;
+    if (sanitizedLevel < 1) {
+      _logWarning('_sanitizeUserData', 'Sanitizing invalid level: ${user.level} -> 1');
+      sanitizedLevel = 1;
+    }
+
+    return user.copyWith(
+      stats: sanitizedStats,
+      currentEXP: sanitizedEXP,
+      level: sanitizedLevel,
+    );
+  }
+
+  /// Sanitize activities for safe import
+  List<ActivityLog> _sanitizeActivities(List<ActivityLog> activities) {
+    final sanitizedActivities = <ActivityLog>[];
+    
+    for (int i = 0; i < activities.length; i++) {
+      final activity = activities[i];
+      
+      try {
+        // Sanitize EXP gained
+        double sanitizedEXP = activity.expGained;
+        if (sanitizedEXP.isNaN || sanitizedEXP.isInfinite || sanitizedEXP < 0) {
+          _logWarning('_sanitizeActivities', 'Sanitizing invalid EXP for activity $i: ${activity.expGained} -> 0.0');
+          sanitizedEXP = 0.0;
+        }
+
+        // Sanitize stat gains
+        final sanitizedStatGains = <StatType, double>{};
+        for (final entry in activity.statGainsMap.entries) {
+          final statType = entry.key;
+          final gainValue = entry.value;
+          
+          if (gainValue.isNaN || gainValue.isInfinite || gainValue < 0) {
+            _logWarning('_sanitizeActivities', 'Sanitizing invalid stat gain for activity $i, $statType: $gainValue -> 0.0');
+            sanitizedStatGains[statType] = 0.0;
+          } else if (gainValue > 1000) {
+            _logWarning('_sanitizeActivities', 'Sanitizing large stat gain for activity $i, $statType: $gainValue -> 1000.0');
+            sanitizedStatGains[statType] = 1000.0;
+          } else {
+            sanitizedStatGains[statType] = gainValue;
+          }
+        }
+
+        // Create sanitized activity
+        final sanitizedActivity = ActivityLog.create(
+          id: activity.id,
+          activityType: activity.activityTypeEnum,
+          durationMinutes: activity.durationMinutes,
+          statGains: sanitizedStatGains,
+          expGained: sanitizedEXP,
+          notes: activity.notes,
+          timestamp: activity.timestamp,
+        );
+
+        sanitizedActivities.add(sanitizedActivity);
+      } catch (e) {
+        _logWarning('_sanitizeActivities', 'Skipping corrupted activity $i: $e');
+        // Skip corrupted activities rather than failing the entire import
+      }
+    }
+    
+    return sanitizedActivities;
   }
 
   /// Create automatic backup
@@ -198,7 +365,7 @@ class BackupService {
     }
   }
 
-  /// Validate backup data integrity
+  /// Validate backup data integrity with infinite stats support
   void _validateBackupData(BackupData backupData) {
     if (backupData.version.isEmpty) {
       throw BackupException('Invalid backup: missing version');
@@ -208,22 +375,87 @@ class BackupService {
       throw BackupException('Invalid backup: missing user ID');
     }
 
-    // Validate user stats
-    for (final statValue in backupData.user.stats.values) {
-      if (statValue < 0) {
-        throw BackupException('Invalid backup: negative stat values');
+    // Validate user level and EXP
+    if (backupData.user.level < 1) {
+      throw BackupException('Invalid backup: user level must be at least 1');
+    }
+
+    if (backupData.user.currentEXP < 0) {
+      throw BackupException('Invalid backup: negative current EXP');
+    }
+
+    if (backupData.user.currentEXP.isNaN || backupData.user.currentEXP.isInfinite) {
+      throw BackupException('Invalid backup: invalid current EXP value');
+    }
+
+    // Validate user stats with infinite progression support
+    for (final entry in backupData.user.stats.entries) {
+      final statName = entry.key;
+      final statValue = entry.value;
+      
+      if (statValue < 1.0) {
+        throw BackupException('Invalid backup: stat $statName below minimum (1.0): $statValue');
+      }
+
+      if (statValue.isNaN || statValue.isInfinite) {
+        throw BackupException('Invalid backup: invalid stat value for $statName: $statValue');
+      }
+
+      // Check for extremely large values that might indicate corruption
+      if (statValue > 1000000) {
+        _logWarning('_validateBackupData', 'Very large stat value for $statName: $statValue');
+        // Don't throw - allow large values but log warning
       }
     }
 
     // Validate activities
-    for (final activity in backupData.activities) {
-      if (activity.durationMinutes < 0) {
-        throw BackupException('Invalid backup: negative activity duration');
+    for (int i = 0; i < backupData.activities.length; i++) {
+      final activity = backupData.activities[i];
+      
+      if (activity.id.isEmpty) {
+        throw BackupException('Invalid backup: activity $i has empty ID');
       }
+
+      if (activity.durationMinutes < 0) {
+        throw BackupException('Invalid backup: activity $i has negative duration: ${activity.durationMinutes}');
+      }
+
       if (activity.expGained < 0) {
-        throw BackupException('Invalid backup: negative EXP gained');
+        throw BackupException('Invalid backup: activity $i has negative EXP: ${activity.expGained}');
+      }
+
+      if (activity.expGained.isNaN || activity.expGained.isInfinite) {
+        throw BackupException('Invalid backup: activity $i has invalid EXP value: ${activity.expGained}');
+      }
+
+      // Validate stat gains if present
+      if (activity.statGainsMap.isNotEmpty) {
+        for (final entry in activity.statGainsMap.entries) {
+          final statType = entry.key;
+          final gainValue = entry.value;
+          
+          if (gainValue < 0) {
+            throw BackupException('Invalid backup: activity $i has negative stat gain for $statType: $gainValue');
+          }
+
+          if (gainValue.isNaN || gainValue.isInfinite) {
+            throw BackupException('Invalid backup: activity $i has invalid stat gain for $statType: $gainValue');
+          }
+
+          // Check for extremely large gains that might indicate corruption
+          if (gainValue > 1000) {
+            _logWarning('_validateBackupData', 'Very large stat gain for activity $i, $statType: $gainValue');
+          }
+        }
+      }
+
+      // Validate timestamp
+      if (activity.timestamp.isAfter(DateTime.now().add(const Duration(hours: 1)))) {
+        throw BackupException('Invalid backup: activity $i has future timestamp: ${activity.timestamp}');
       }
     }
+
+    _logInfo('_validateBackupData', 'Backup validation completed successfully');
   }
 
   /// Get timestamp string for filenames
@@ -362,6 +594,27 @@ class BackupService {
       return null;
     }
   }
+
+  /// Log error messages with context
+  void _logError(String method, String message) {
+    final timestamp = DateTime.now().toIso8601String();
+    final logMessage = '[$timestamp] ERROR BackupService.$method: $message';
+    print(logMessage); // In production, use proper logging framework
+  }
+
+  /// Log warning messages with context
+  void _logWarning(String method, String message) {
+    final timestamp = DateTime.now().toIso8601String();
+    final logMessage = '[$timestamp] WARNING BackupService.$method: $message';
+    print(logMessage); // In production, use proper logging framework
+  }
+
+  /// Log info messages with context
+  void _logInfo(String method, String message) {
+    final timestamp = DateTime.now().toIso8601String();
+    final logMessage = '[$timestamp] INFO BackupService.$method: $message';
+    print(logMessage); // In production, use proper logging framework
+  }
 }
 
 /// Backup data structure
@@ -457,6 +710,27 @@ class BackupFileInfo {
   String get formattedDate {
     return '${createdDate.day}/${createdDate.month}/${createdDate.year} '
            '${createdDate.hour.toString().padLeft(2, '0')}:${createdDate.minute.toString().padLeft(2, '0')}';
+  }
+
+  /// Log error messages with context
+  void _logError(String method, String message) {
+    final timestamp = DateTime.now().toIso8601String();
+    final logMessage = '[$timestamp] ERROR BackupService.$method: $message';
+    print(logMessage); // In production, use proper logging framework
+  }
+
+  /// Log warning messages with context
+  void _logWarning(String method, String message) {
+    final timestamp = DateTime.now().toIso8601String();
+    final logMessage = '[$timestamp] WARNING BackupService.$method: $message';
+    print(logMessage); // In production, use proper logging framework
+  }
+
+  /// Log info messages with context
+  void _logInfo(String method, String message) {
+    final timestamp = DateTime.now().toIso8601String();
+    final logMessage = '[$timestamp] INFO BackupService.$method: $message';
+    print(logMessage); // In production, use proper logging framework
   }
 }
 

@@ -19,7 +19,7 @@ class ActivityLog extends HiveObject {
   DateTime timestamp;
 
   @HiveField(4)
-  Map<String, double> statGains; // StatType.name -> gain value
+  Map<String, double> statGains; // StatType.name -> exact gain value (used for stat reversal)
 
   @HiveField(5)
   double expGained;
@@ -67,8 +67,15 @@ class ActivityLog extends HiveObject {
   }
 
   /// Get stat gains as Map with StatType keys and double values
+  /// Includes data migration logic for activities without stored gains
   Map<StatType, double> get statGainsMap {
     final Map<StatType, double> result = {};
+    
+    // If statGains is empty or null, calculate gains using original activity mapping
+    if (statGains.isEmpty) {
+      return _calculateFallbackStatGains();
+    }
+    
     for (final entry in statGains.entries) {
       final statType = StatType.values.firstWhere(
         (type) => type.name == entry.key,
@@ -77,6 +84,67 @@ class ActivityLog extends HiveObject {
       result[statType] = entry.value;
     }
     return result;
+  }
+
+  /// Calculate stat gains using original activity mapping for data migration
+  /// This is used for activities logged before stat gains were stored
+  Map<StatType, double> _calculateFallbackStatGains() {
+    // Import StatsService to calculate gains
+    // Note: This creates a circular dependency, so we'll implement the calculation inline
+    final gains = <StatType, double>{};
+    final durationHours = durationMinutes / 60.0;
+    final activityTypeEnum = this.activityTypeEnum;
+
+    switch (activityTypeEnum) {
+      case ActivityType.workoutWeights:
+        gains[StatType.strength] = 0.06 * durationHours;
+        gains[StatType.endurance] = 0.04 * durationHours;
+        break;
+
+      case ActivityType.workoutCardio:
+        gains[StatType.agility] = 0.06 * durationHours;
+        gains[StatType.endurance] = 0.04 * durationHours;
+        break;
+
+      case ActivityType.workoutYoga:
+        gains[StatType.agility] = 0.05 * durationHours;
+        gains[StatType.focus] = 0.03 * durationHours;
+        break;
+
+      case ActivityType.studySerious:
+        gains[StatType.intelligence] = 0.06 * durationHours;
+        gains[StatType.focus] = 0.04 * durationHours;
+        break;
+
+      case ActivityType.studyCasual:
+        gains[StatType.intelligence] = 0.04 * durationHours;
+        gains[StatType.charisma] = 0.03 * durationHours;
+        break;
+
+      case ActivityType.meditation:
+        gains[StatType.focus] = 0.05 * durationHours;
+        break;
+
+      case ActivityType.socializing:
+        gains[StatType.charisma] = 0.05 * durationHours;
+        gains[StatType.focus] = 0.02 * durationHours;
+        break;
+
+      case ActivityType.sleepTracking:
+        gains[StatType.endurance] = 0.02 * durationHours;
+        break;
+
+      case ActivityType.dietHealthy:
+        gains[StatType.endurance] = 0.03 * durationHours;
+        break;
+
+      case ActivityType.quitBadHabit:
+        // Fixed amount, not per hour
+        gains[StatType.focus] = 0.03;
+        break;
+    }
+
+    return gains;
   }
 
   /// Get formatted duration string
@@ -123,6 +191,27 @@ class ActivityLog extends HiveObject {
     final now = DateTime.now();
     final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
     return timestamp.isAfter(startOfWeek);
+  }
+
+  /// Check if this activity has stored stat gains (for data migration purposes)
+  bool get hasStoredStatGains {
+    return statGains.isNotEmpty;
+  }
+
+  /// Check if this activity needs stat gain migration
+  bool get needsStatGainMigration {
+    return !hasStoredStatGains;
+  }
+
+  /// Migrate stat gains data for activities that don't have stored gains
+  /// This updates the activity log with calculated stat gains for stat reversal support
+  void migrateStatGains() {
+    if (hasStoredStatGains) {
+      return; // Already has stored gains, no migration needed
+    }
+
+    final calculatedGains = _calculateFallbackStatGains();
+    statGains = calculatedGains.map((key, value) => MapEntry(key.name, value));
   }
 
   /// Copy activity log with updated values

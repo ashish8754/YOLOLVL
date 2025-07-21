@@ -270,14 +270,12 @@ class UserService {
 
       // Calculate total stat points
       double totalStats = 0;
-      double maxPossibleStats = 0;
       final Map<StatType, double> currentStats = {};
 
       for (final statType in StatType.values) {
         final statValue = user.getStat(statType);
         currentStats[statType] = statValue;
         totalStats += statValue;
-        maxPossibleStats += 5.0; // Assuming max stat is 5.0
       }
 
       // Calculate days since creation
@@ -291,7 +289,7 @@ class UserService {
         lowestStat: currentStats.entries
             .reduce((a, b) => a.value < b.value ? a : b),
         daysSinceCreation: daysSinceCreation,
-        overallProgress: totalStats / maxPossibleStats,
+        overallProgress: totalStats / (StatType.values.length * 6.0), // Use 6.0 as baseline for progress calculation
       );
     } catch (e) {
       throw UserServiceException('Failed to get user stats summary: $e');

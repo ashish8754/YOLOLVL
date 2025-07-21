@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'dashboard_screen.dart';
+import 'dart:math' as math;
+
 import 'activity_history_screen.dart';
 import 'activity_logging_screen.dart';
 import 'stats_progression_screen.dart';
@@ -31,7 +33,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
   int _currentIndex = 0;
   late final AppLifecycleService _appLifecycleService;
   late AnimationController _tabAnimationController;
-  late Animation<double> _tabAnimation;
   
   late final List<Widget> _screens;
 
@@ -42,10 +43,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     _tabAnimationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
-    );
-    _tabAnimation = CurvedAnimation(
-      parent: _tabAnimationController,
-      curve: Curves.easeInOutCubic,
     );
     _tabAnimationController.forward();
     
@@ -67,74 +64,46 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final isReducedMotion = mediaQuery.disableAnimations;
+    
     return Scaffold(
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        transitionBuilder: (Widget child, Animation<double> animation) {
-          return FadeTransition(
-            opacity: animation,
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0.1, 0.0),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeInOutCubic,
-              )),
-              child: child,
-            ),
-          );
-        },
-        child: Container(
-          key: ValueKey<int>(_currentIndex),
-          child: _screens[_currentIndex],
+      // Add semantic label for screen readers
+      body: Semantics(
+        label: 'Main navigation screen',
+        child: AnimatedSwitcher(
+          duration: isReducedMotion 
+              ? Duration.zero 
+              : const Duration(milliseconds: 300),
+          transitionBuilder: (Widget child, Animation<double> animation) {
+            if (isReducedMotion) {
+              return child;
+            }
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.1, 0.0),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeInOutCubic,
+                )),
+                child: child,
+              ),
+            );
+          },
+          child: Container(
+            key: ValueKey<int>(_currentIndex),
+            child: _screens[_currentIndex],
+          ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _onTabTapped,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-        selectedItemColor: Theme.of(context).colorScheme.primary,
-        unselectedItemColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-        selectedFontSize: 12,
-        unselectedFontSize: 10,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'History',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.show_chart),
-            label: 'Stats',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.star),
-            label: 'Achievements',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
-      ),
-      floatingActionButton: Consumer<ActivityProvider>(
-        builder: (context, activityProvider, child) {
-          // Show pulse animation if no activities logged today
-          final hasActivitiesToday = activityProvider.todaysActivities.isNotEmpty;
-          return PulseFAB(
-            onPressed: _navigateToActivityLogging,
-            icon: Icons.add,
-            tooltip: 'Log Activity',
-            showPulse: !hasActivitiesToday,
-          );
-        },
-      ),
+      bottomNavigationBar: _buildBottomNavigationBar(),
+      floatingActionButton: _buildFloatingActionButton(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      // Ensure proper safe area handling
+      resizeToAvoidBottomInset: true,
     );
   }
 
@@ -146,6 +115,103 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       });
       _tabAnimationController.forward();
     }
+  }
+
+  Widget _buildBottomNavigationBar() {
+    final mediaQuery = MediaQuery.of(context);
+    final textScaler = mediaQuery.textScaler;
+    
+    // Calculate responsive font sizes based on text scaling
+    final baseFontSize = 11.0; // Slightly smaller to prevent overflow
+    final selectedFontSize = math.min(textScaler.scale(baseFontSize), 14.0); // Cap at 14
+    final unselectedFontSize = math.min(textScaler.scale(baseFontSize * 0.85), 12.0); // Cap at 12
+    
+    // Ensure minimum touch target size for accessibility
+    final minTouchTarget = 48.0;
+    final notchMargin = math.max(8.0, mediaQuery.padding.bottom * 0.1);
+    
+    return BottomAppBar(
+      shape: const CircularNotchedRectangle(),
+      notchMargin: notchMargin,
+      color: Theme.of(context).colorScheme.surfaceContainer,
+      height: math.max(kBottomNavigationBarHeight, minTouchTarget + 8),
+      child: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: _onTabTapped,
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        selectedItemColor: Theme.of(context).colorScheme.primary,
+        unselectedItemColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+        selectedFontSize: selectedFontSize,
+        unselectedFontSize: unselectedFontSize,
+        // Ensure proper icon size for accessibility
+        iconSize: math.max(24.0, textScaler.scale(24.0)),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard),
+            label: 'Dashboard',
+            tooltip: 'Navigate to Dashboard',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history),
+            label: 'History',
+            tooltip: 'View Activity History',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.show_chart),
+            label: 'Stats',
+            tooltip: 'View Statistics',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.star),
+            label: 'Achievements',
+            tooltip: 'View Achievements',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
+            tooltip: 'Open Settings',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFloatingActionButton() {
+    return Consumer<ActivityProvider>(
+      builder: (context, activityProvider, child) {
+        final mediaQuery = MediaQuery.of(context);
+        final safeAreaBottom = mediaQuery.padding.bottom;
+        final textScaler = mediaQuery.textScaler;
+        
+        // Show pulse animation if no activities logged today
+        final hasActivitiesToday = activityProvider.todaysActivities.isNotEmpty;
+        
+        // Calculate responsive FAB size for accessibility
+        final baseFabSize = 56.0;
+        final fabSize = math.max(baseFabSize, textScaler.scale(baseFabSize));
+        
+        return Container(
+          // Add safe area margin to prevent overlap with system UI
+          margin: EdgeInsets.only(
+            bottom: math.max(8.0, safeAreaBottom * 0.2),
+          ),
+          child: SizedBox(
+            width: fabSize,
+            height: fabSize,
+            child: PulseFAB(
+              onPressed: _navigateToActivityLogging,
+              icon: Icons.add,
+              tooltip: hasActivitiesToday 
+                  ? 'Log Activity' 
+                  : 'Log Activity - No activities logged today',
+              showPulse: !hasActivitiesToday,
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _navigateToActivityLogging() async {

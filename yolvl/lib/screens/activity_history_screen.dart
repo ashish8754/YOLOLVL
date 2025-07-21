@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/activity_provider.dart';
-import '../models/activity_log.dart';
 import '../models/enums.dart';
 import '../widgets/activity_history_list.dart';
 import '../widgets/activity_filter_widget.dart';
@@ -208,6 +207,7 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
                     isLoadingMore: activityProvider.isLoading && _currentPage > 0,
                     hasMoreData: _hasMoreData,
                     onDeleteActivity: _onDeleteActivity,
+                    isDeleting: activityProvider.isLoading,
                   ),
                 );
               },
@@ -253,51 +253,94 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
   }
 
   Future<void> _onDeleteActivity(String activityId) async {
-    final confirmed = await _showDeleteConfirmation();
-    if (confirmed == true) {
-      final activityProvider = context.read<ActivityProvider>();
-      final success = await activityProvider.deleteActivity(activityId);
-      
-      if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Activity deleted successfully'),
-            backgroundColor: Colors.green,
+    final activityProvider = context.read<ActivityProvider>();
+    
+    // Show loading state immediately
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Theme.of(context).colorScheme.onInverseSurface,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text('Deleting activity...'),
+            ],
           ),
-        );
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(activityProvider.errorMessage ?? 'Failed to delete activity'),
-            backgroundColor: Theme.of(context).colorScheme.error,
+          duration: const Duration(seconds: 3),
+          backgroundColor: Theme.of(context).colorScheme.inverseSurface,
+        ),
+      );
+    }
+    
+    final success = await activityProvider.deleteActivity(activityId);
+    
+    // Clear the loading snackbar
+    if (mounted) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+    }
+    
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(
+                Icons.check_circle,
+                color: Theme.of(context).colorScheme.onTertiary,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              const Text('Activity deleted and stats reversed'),
+            ],
           ),
-        );
-      }
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(
+                Icons.error,
+                color: Theme.of(context).colorScheme.onError,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  activityProvider.errorMessage ?? 'Failed to delete activity',
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          action: SnackBarAction(
+            label: 'Retry',
+            textColor: Theme.of(context).colorScheme.onError,
+            onPressed: () => _onDeleteActivity(activityId),
+          ),
+        ),
+      );
     }
   }
 
-  Future<bool?> _showDeleteConfirmation() {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Activity'),
-        content: const Text('Are you sure you want to delete this activity? This action cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   void _setDateRangeFromEnum(DateRange dateRange) {
     final now = DateTime.now();

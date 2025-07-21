@@ -175,6 +175,35 @@ void main() {
         expect(result[StatType.strength], equals(2.0));
         expect(result[StatType.agility], equals(1.5));
       });
+
+      test('should apply gains to stats beyond 5.0 without ceiling constraints', () {
+        final currentStats = {
+          StatType.strength: 8.5,
+          StatType.agility: 12.3,
+          StatType.endurance: 25.0,
+          StatType.intelligence: 6.7,
+          StatType.focus: 15.2,
+          StatType.charisma: 4.8,
+        };
+
+        final gains = {
+          StatType.strength: 0.06,
+          StatType.agility: 0.05,
+          StatType.endurance: 0.04,
+          StatType.intelligence: 0.06,
+          StatType.focus: 0.03,
+          StatType.charisma: 0.05,
+        };
+
+        final result = StatsService.applyStatGains(currentStats, gains);
+
+        expect(result[StatType.strength], closeTo(8.56, 0.001)); // 8.5 + 0.06
+        expect(result[StatType.agility], closeTo(12.35, 0.001)); // 12.3 + 0.05
+        expect(result[StatType.endurance], closeTo(25.04, 0.001)); // 25.0 + 0.04
+        expect(result[StatType.intelligence], closeTo(6.76, 0.001)); // 6.7 + 0.06
+        expect(result[StatType.focus], closeTo(15.23, 0.001)); // 15.2 + 0.03
+        expect(result[StatType.charisma], closeTo(4.85, 0.001)); // 4.8 + 0.05
+      });
     });
 
     group('getAffectedStats', () {
@@ -296,6 +325,40 @@ void main() {
 
         expect(validated[StatType.strength], equals(2.0)); // Raised to custom minimum
         expect(validated[StatType.agility], equals(2.0)); // Raised to custom minimum
+      });
+
+      test('should allow stats to grow beyond 5.0 without ceiling constraints', () {
+        final stats = {
+          StatType.strength: 7.5,
+          StatType.agility: 12.3,
+          StatType.endurance: 25.8,
+          StatType.intelligence: 100.0,
+          StatType.focus: 6.7,
+          StatType.charisma: 15.2,
+        };
+
+        final validated = StatsService.validateStats(stats);
+
+        expect(validated[StatType.strength], equals(7.5)); // No ceiling applied
+        expect(validated[StatType.agility], equals(12.3)); // No ceiling applied
+        expect(validated[StatType.endurance], equals(25.8)); // No ceiling applied
+        expect(validated[StatType.intelligence], equals(100.0)); // No ceiling applied
+        expect(validated[StatType.focus], equals(6.7)); // No ceiling applied
+        expect(validated[StatType.charisma], equals(15.2)); // No ceiling applied
+      });
+
+      test('should handle NaN and infinity values by setting to minimum', () {
+        final stats = {
+          StatType.strength: double.nan,
+          StatType.agility: double.infinity,
+          StatType.endurance: double.negativeInfinity,
+        };
+
+        final validated = StatsService.validateStats(stats);
+
+        expect(validated[StatType.strength], equals(1.0)); // NaN -> minimum
+        expect(validated[StatType.agility], equals(1.0)); // Infinity -> minimum
+        expect(validated[StatType.endurance], equals(1.0)); // -Infinity -> minimum
       });
     });
 

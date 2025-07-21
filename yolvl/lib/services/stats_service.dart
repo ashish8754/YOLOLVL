@@ -127,7 +127,7 @@ class StatsService {
     return totalGains;
   }
 
-  /// Validate stat values (ensure they don't go below minimum)
+  /// Validate stat values (ensure they don't go below minimum and handle extreme values)
   static Map<StatType, double> validateStats(Map<StatType, double> stats, {double minValue = 1.0}) {
     final validatedStats = <StatType, double>{};
     
@@ -136,15 +136,206 @@ class StatsService {
       
       // Handle NaN and infinity values
       if (value.isNaN || value.isInfinite) {
+        _logError('validateStats', 'Invalid stat value for ${entry.key.name}: $value, clamping to $minValue');
         validatedStats[entry.key] = minValue;
       } else if (value < minValue) {
         validatedStats[entry.key] = minValue;
+      } else if (value > _getMaxReasonableStatValue()) {
+        // Handle extremely large values that might cause overflow or rendering issues
+        final maxReasonable = _getMaxReasonableStatValue();
+        _logWarning('validateStats', 'Extremely large stat value for ${entry.key.name}: $value, clamping to $maxReasonable');
+        validatedStats[entry.key] = maxReasonable;
       } else {
         validatedStats[entry.key] = value;
       }
     }
     
     return validatedStats;
+  }
+
+  /// Comprehensive validation for infinite stats system
+  /// Validates stats for storage, calculation, and display safety
+  static InfiniteStatsValidationResult validateInfiniteStats(Map<StatType, double> stats) {
+    try {
+      if (stats.isEmpty) {
+        return InfiniteStatsValidationResult.invalid('Stats map is empty');
+      }
+
+      final issues = <String>[];
+      final warnings = <String>[];
+      final sanitizedStats = <StatType, double>{};
+
+      for (final entry in stats.entries) {
+        final statType = entry.key;
+        final value = entry.value;
+
+        // Check for invalid values
+        if (value.isNaN) {
+          issues.add('${statType.name} has NaN value');
+          sanitizedStats[statType] = 1.0;
+        } else if (value.isInfinite) {
+          issues.add('${statType.name} has infinite value');
+          sanitizedStats[statType] = _getMaxReasonableStatValue();
+        } else if (value < 1.0) {
+          warnings.add('${statType.name} below minimum (${value.toStringAsFixed(2)})');
+          sanitizedStats[statType] = 1.0;
+        } else if (value > _getMaxReasonableStatValue()) {
+          warnings.add('${statType.name} extremely large (${value.toStringAsFixed(0)})');
+          sanitizedStats[statType] = _getMaxReasonableStatValue();
+        } else {
+          sanitizedStats[statType] = value;
+        }
+      }
+
+      // Check for potential overflow in calculations
+      if (sanitizedStats.isNotEmpty) {
+        final maxValue = sanitizedStats.values.reduce((a, b) => a > b ? a : b);
+        if (maxValue > 100000) {
+          warnings.add('Very large stat values may impact performance');
+        }
+      }
+
+      if (issues.isNotEmpty) {
+        return InfiniteStatsValidationResult.invalid(
+          'Critical validation issues: ${issues.join(', ')}',
+          sanitizedStats: sanitizedStats,
+          warnings: warnings,
+        );
+      }
+
+      if (warnings.isNotEmpty) {
+        return InfiniteStatsValidationResult.warning(
+          'Validation warnings: ${warnings.join(', ')}',
+          sanitizedStats: sanitizedStats,
+          warnings: warnings,
+        );
+      }
+
+      return InfiniteStatsValidationResult.valid(sanitizedStats: sanitizedStats);
+    } catch (e) {
+      _logError('validateInfiniteStats', 'Exception during validation: $e');
+      return InfiniteStatsValidationResult.invalid('Validation failed: $e');
+    }
+  }
+
+  /// Get maximum reasonable stat value to prevent overflow and rendering issues
+  /// This is a safety limit, not a gameplay limit
+  static double _getMaxReasonableStatValue() {
+    return 999999.0; // 1 million - 1, should be sufficient for any reasonable gameplay
+  }
+
+  /// Validate stat value for infinite progression system
+  /// Ensures values are reasonable for storage, calculation, and display
+  static double validateStatValue(double value, {double minValue = 1.0}) {
+    // Handle special cases
+    if (value.isNaN) {
+      _logError('validateStatValue', 'NaN stat value detected, using minimum: $minValue');
+      return minValue;
+    }
+    
+    if (value.isInfinite) {
+      _logError('validateStatValue', 'Infinite stat value detected, using maximum reasonable value');
+      return _getMaxReasonableStatValue();
+    }
+    
+    // Handle negative values
+    if (value < minValue) {
+      return minValue;
+    }
+    
+    // Handle extremely large values
+    if (value > _getMaxReasonableStatValue()) {
+      _logWarning('validateStatValue', 'Extremely large stat value: $value, clamping to reasonable maximum');
+      return _getMaxReasonableStatValue();
+    }
+    
+    return value;
+  }
+
+  /// Check if stat values are safe for chart rendering
+  /// Returns validation result with recommendations
+  static StatChartValidationResult validateStatsForChart(Map<StatType, double> stats) {
+    try {
+      if (stats.isEmpty) {
+        return StatChartValidationResult.invalid('Stats map is empty');
+      }
+
+      final maxValue = stats.values.reduce((a, b) => a > b ? a : b);
+      final minValue = stats.values.reduce((a, b) => a < b ? a : b);
+
+      // Check for invalid values
+      for (final entry in stats.entries) {
+        if (entry.value.isNaN || entry.value.isInfinite) {
+          return StatChartValidationResult.invalid('Invalid stat value for ${entry.key.name}: ${entry.value}');
+        }
+      }
+
+      // Check for extremely large values that might cause rendering issues
+      if (maxValue > 100000) {
+        return StatChartValidationResult.warning(
+          'Very large stat values detected (max: ${maxValue.toStringAsFixed(0)}). Chart may have performance issues.',
+          recommendedMaxY: _calculateSafeChartMaximum(maxValue),
+        );
+      }
+
+      // Check for very small differences that might not render well
+      if (maxValue > 0 && (maxValue - minValue) < 0.01) {
+        return StatChartValidationResult.warning(
+          'Very small stat differences detected. Chart may not show clear distinctions.',
+          recommendedMaxY: maxValue + 1.0,
+        );
+      }
+
+      return StatChartValidationResult.valid(
+        recommendedMaxY: _calculateSafeChartMaximum(maxValue),
+      );
+    } catch (e) {
+      _logError('validateStatsForChart', 'Exception during chart validation: $e');
+      return StatChartValidationResult.invalid('Chart validation failed: $e');
+    }
+  }
+
+  /// Calculate safe chart maximum for rendering performance
+  static double _calculateSafeChartMaximum(double maxStatValue) {
+    // For very large values, use logarithmic scaling or reasonable increments
+    if (maxStatValue <= 5.0) {
+      return 5.0;
+    } else if (maxStatValue <= 100.0) {
+      // Use increments of 5 up to 100
+      return ((maxStatValue / 5.0).ceil() * 5.0);
+    } else if (maxStatValue <= 1000.0) {
+      // Use increments of 50 for values 100-1000
+      return ((maxStatValue / 50.0).ceil() * 50.0);
+    } else {
+      // Use increments of 500 for very large values
+      return ((maxStatValue / 500.0).ceil() * 500.0);
+    }
+  }
+
+  /// Validate stat gains for infinite progression
+  /// Ensures gains are reasonable and won't cause overflow
+  static Map<StatType, double> validateStatGains(Map<StatType, double> gains) {
+    final validatedGains = <StatType, double>{};
+    
+    for (final entry in gains.entries) {
+      final gain = entry.value;
+      
+      if (gain.isNaN || gain.isInfinite) {
+        _logError('validateStatGains', 'Invalid stat gain for ${entry.key.name}: $gain, setting to 0');
+        validatedGains[entry.key] = 0.0;
+      } else if (gain < 0) {
+        _logWarning('validateStatGains', 'Negative stat gain for ${entry.key.name}: $gain, setting to 0');
+        validatedGains[entry.key] = 0.0;
+      } else if (gain > 100.0) {
+        // Extremely large single gain - might indicate a bug
+        _logWarning('validateStatGains', 'Very large stat gain for ${entry.key.name}: $gain, clamping to 100');
+        validatedGains[entry.key] = 100.0;
+      } else {
+        validatedGains[entry.key] = gain;
+      }
+    }
+    
+    return validatedGains;
   }
 
   /// Get stat gain rate per hour for an activity type
@@ -155,6 +346,123 @@ class StatsService {
   /// Get default stat gains per hour for an activity type (for settings display)
   static Map<StatType, double> getDefaultStatGains(ActivityType activityType) {
     return getStatGainRates(activityType);
+  }
+
+  /// Calculate stat reversals for activity deletion
+  /// Uses stored statsGained data from ActivityLog, with fallback calculation for legacy activities
+  static Map<StatType, double> calculateStatReversals(
+    ActivityType activityType,
+    int durationMinutes,
+    Map<StatType, double>? storedStatGains,
+  ) {
+    if (durationMinutes < 0) {
+      throw ArgumentError('Duration must be non-negative');
+    }
+
+    // Use stored stat gains if available (preferred method for accuracy)
+    if (storedStatGains != null && storedStatGains.isNotEmpty) {
+      return Map<StatType, double>.from(storedStatGains);
+    }
+
+    // Fallback: calculate using original activity mapping for legacy activities
+    return calculateStatGains(activityType, durationMinutes);
+  }
+
+  /// Apply stat reversals to current stats with validation
+  /// Ensures no stat falls below the minimum floor value (1.0)
+  static Map<StatType, double> applyStatReversals(
+    Map<StatType, double> currentStats,
+    Map<StatType, double> reversals,
+    {double minValue = 1.0}
+  ) {
+    final updatedStats = <StatType, double>{};
+    
+    // Initialize with current stats
+    for (final statType in StatType.values) {
+      updatedStats[statType] = currentStats[statType] ?? 1.0;
+    }
+
+    // Apply reversals with floor validation
+    for (final entry in reversals.entries) {
+      final currentValue = updatedStats[entry.key] ?? 1.0;
+      final newValue = currentValue - entry.value;
+      
+      // Ensure stat doesn't fall below minimum floor
+      updatedStats[entry.key] = newValue < minValue ? minValue : newValue;
+    }
+
+    return updatedStats;
+  }
+
+  /// Validate stat reversal operation before applying
+  /// Returns true if reversal is safe to apply, false if it would cause issues
+  static bool validateStatReversal(
+    Map<StatType, double> currentStats,
+    Map<StatType, double> reversals,
+    {double minValue = 1.0}
+  ) {
+    try {
+      // Validate input parameters
+      if (currentStats.isEmpty) {
+        _logError('validateStatReversal', 'Current stats map is empty');
+        return false;
+      }
+
+      if (reversals.isEmpty) {
+        _logWarning('validateStatReversal', 'Reversals map is empty - nothing to reverse');
+        return true; // Empty reversals are valid (no-op)
+      }
+
+      // Validate each reversal
+      for (final entry in reversals.entries) {
+        final statType = entry.key;
+        final reversalAmount = entry.value;
+        
+        // Validate reversal amount
+        if (reversalAmount.isNaN || reversalAmount.isInfinite) {
+          _logError('validateStatReversal', 'Invalid reversal amount for ${statType.name}: $reversalAmount');
+          return false;
+        }
+
+        if (reversalAmount < 0) {
+          _logError('validateStatReversal', 'Negative reversal amount for ${statType.name}: $reversalAmount');
+          return false;
+        }
+
+        // Get current stat value
+        final currentValue = currentStats[statType];
+        if (currentValue == null) {
+          _logError('validateStatReversal', 'Missing current stat value for ${statType.name}');
+          return false;
+        }
+
+        // Validate current stat value
+        if (currentValue.isNaN || currentValue.isInfinite) {
+          _logError('validateStatReversal', 'Invalid current stat value for ${statType.name}: $currentValue');
+          return false;
+        }
+
+        final newValue = currentValue - reversalAmount;
+        
+        // Log if reversal would cause significant clamping
+        if (newValue < minValue) {
+          _logWarning('validateStatReversal', 
+            'Stat reversal will clamp ${statType.name} from $currentValue to $minValue (would be $newValue)');
+        }
+
+        // Check for extreme negative values that might indicate data corruption
+        if (newValue < -100) {
+          _logError('validateStatReversal', 
+            'Extreme negative stat value detected for ${statType.name}: $newValue (current: $currentValue, reversal: $reversalAmount)');
+          return false;
+        }
+      }
+      
+      return true; // All reversals are valid
+    } catch (e) {
+      _logError('validateStatReversal', 'Exception during validation: $e');
+      return false;
+    }
   }
 
   /// Calculate expected gains for preview purposes
@@ -169,6 +477,230 @@ class StatsService {
       affectedStats: affectedStats,
       primaryStat: getPrimaryStat(activityType),
     );
+  }
+
+  /// Log error messages with context
+  static void _logError(String method, String message) {
+    final timestamp = DateTime.now().toIso8601String();
+    final logMessage = '[$timestamp] ERROR StatsService.$method: $message';
+    print(logMessage); // In production, use proper logging framework
+  }
+
+  /// Log warning messages with context
+  static void _logWarning(String method, String message) {
+    final timestamp = DateTime.now().toIso8601String();
+    final logMessage = '[$timestamp] WARNING StatsService.$method: $message';
+    print(logMessage); // In production, use proper logging framework
+  }
+
+  /// Log info messages with context
+  static void _logInfo(String method, String message) {
+    final timestamp = DateTime.now().toIso8601String();
+    final logMessage = '[$timestamp] INFO StatsService.$method: $message';
+    print(logMessage); // In production, use proper logging framework
+  }
+
+  /// Validate stat values for export/import operations
+  /// Ensures data integrity during backup/restore with infinite stats
+  static ExportValidationResult validateStatsForExport(Map<StatType, double> stats) {
+    try {
+      if (stats.isEmpty) {
+        return ExportValidationResult.invalid('No stats to export');
+      }
+
+      final issues = <String>[];
+      final warnings = <String>[];
+      final sanitizedStats = <StatType, double>{};
+
+      for (final entry in stats.entries) {
+        final statType = entry.key;
+        final value = entry.value;
+
+        if (value.isNaN || value.isInfinite) {
+          issues.add('${statType.name}: Invalid value ($value)');
+          sanitizedStats[statType] = 1.0;
+        } else if (value < 1.0) {
+          warnings.add('${statType.name}: Below minimum (${value.toStringAsFixed(2)})');
+          sanitizedStats[statType] = 1.0;
+        } else if (value > 1000000) {
+          warnings.add('${statType.name}: Extremely large value (${value.toStringAsFixed(0)})');
+          sanitizedStats[statType] = value; // Keep large values for export
+        } else {
+          sanitizedStats[statType] = value;
+        }
+      }
+
+      if (issues.isNotEmpty) {
+        return ExportValidationResult.invalid(
+          'Export validation failed: ${issues.join(', ')}',
+          sanitizedStats: sanitizedStats,
+          warnings: warnings,
+        );
+      }
+
+      if (warnings.isNotEmpty) {
+        return ExportValidationResult.warning(
+          'Export validation warnings: ${warnings.join(', ')}',
+          sanitizedStats: sanitizedStats,
+          warnings: warnings,
+        );
+      }
+
+      return ExportValidationResult.valid(sanitizedStats: sanitizedStats);
+    } catch (e) {
+      _logError('validateStatsForExport', 'Exception during export validation: $e');
+      return ExportValidationResult.invalid('Export validation failed: $e');
+    }
+  }
+
+  /// Test system behavior with edge case stat values
+  /// Used for testing extreme scenarios in infinite stats system
+  static EdgeCaseTestResult testEdgeCaseStatValues() {
+    final testCases = <String, Map<StatType, double>>{
+      'normal_values': {
+        StatType.strength: 5.5,
+        StatType.agility: 7.2,
+        StatType.endurance: 3.8,
+        StatType.intelligence: 9.1,
+        StatType.focus: 6.4,
+        StatType.charisma: 4.7,
+      },
+      'large_values': {
+        StatType.strength: 150.0,
+        StatType.agility: 200.5,
+        StatType.endurance: 99.9,
+        StatType.intelligence: 500.0,
+        StatType.focus: 75.3,
+        StatType.charisma: 300.8,
+      },
+      'very_large_values': {
+        StatType.strength: 10000.0,
+        StatType.agility: 25000.5,
+        StatType.endurance: 50000.0,
+        StatType.intelligence: 100000.0,
+        StatType.focus: 75000.3,
+        StatType.charisma: 30000.8,
+      },
+      'extreme_values': {
+        StatType.strength: 999999.0,
+        StatType.agility: 500000.0,
+        StatType.endurance: 750000.0,
+        StatType.intelligence: 1000000.0,
+        StatType.focus: 250000.0,
+        StatType.charisma: 800000.0,
+      },
+      'invalid_values': {
+        StatType.strength: double.nan,
+        StatType.agility: double.infinity,
+        StatType.endurance: double.negativeInfinity,
+        StatType.intelligence: -100.0,
+        StatType.focus: 0.5,
+        StatType.charisma: -1.0,
+      },
+    };
+
+    final results = <String, dynamic>{};
+    final issues = <String>[];
+
+    for (final entry in testCases.entries) {
+      final testName = entry.key;
+      final testStats = entry.value;
+
+      try {
+        // Test validation
+        final validationResult = validateInfiniteStats(testStats);
+        results['${testName}_validation'] = validationResult.isValid;
+
+        // Test chart validation
+        final chartResult = validateStatsForChart(testStats);
+        results['${testName}_chart'] = chartResult.isValid;
+
+        // Test export validation
+        final exportResult = validateStatsForExport(testStats);
+        results['${testName}_export'] = exportResult.isValid;
+
+        // Test stat application
+        final gains = {StatType.strength: 0.1, StatType.agility: 0.05};
+        final appliedStats = applyStatGains(testStats, gains);
+        results['${testName}_application'] = appliedStats.isNotEmpty;
+
+      } catch (e) {
+        issues.add('$testName failed: $e');
+        results['${testName}_error'] = e.toString();
+      }
+    }
+
+    return EdgeCaseTestResult(
+      testResults: results,
+      issues: issues,
+      passed: issues.isEmpty,
+    );
+  }
+
+  /// Validate chart rendering with extremely large values
+  /// Ensures charts can handle infinite stats without performance issues
+  static ChartRenderingValidationResult validateChartRendering(Map<StatType, double> stats) {
+    try {
+      if (stats.isEmpty) {
+        return ChartRenderingValidationResult.invalid('No stats for chart rendering');
+      }
+
+      final maxValue = stats.values.reduce((a, b) => a > b ? a : b);
+      final minValue = stats.values.reduce((a, b) => a < b ? a : b);
+      final range = maxValue - minValue;
+
+      final issues = <String>[];
+      final warnings = <String>[];
+      final recommendations = <String>[];
+
+      // Check for invalid values
+      for (final entry in stats.entries) {
+        if (entry.value.isNaN || entry.value.isInfinite) {
+          issues.add('${entry.key.name} has invalid value: ${entry.value}');
+        }
+      }
+
+      if (issues.isNotEmpty) {
+        return ChartRenderingValidationResult.invalid(
+          'Chart rendering validation failed: ${issues.join(', ')}',
+          warnings: warnings,
+          recommendations: recommendations,
+        );
+      }
+
+      // Performance considerations
+      if (maxValue > 1000000) {
+        warnings.add('Extremely large values may cause rendering performance issues');
+        recommendations.add('Consider using logarithmic scaling for values above 1M');
+      } else if (maxValue > 100000) {
+        warnings.add('Very large values detected');
+        recommendations.add('Monitor chart rendering performance');
+      }
+
+      // Visual clarity considerations
+      if (range < 0.1 && maxValue > 1.0) {
+        warnings.add('Very small value differences may not be visually distinct');
+        recommendations.add('Consider adjusting chart scale or precision');
+      }
+
+      // Memory usage considerations
+      if (maxValue > 10000) {
+        recommendations.add('Use appropriate chart intervals to reduce memory usage');
+      }
+
+      final recommendedMaxY = _calculateSafeChartMaximum(maxValue);
+      final scalingFactor = recommendedMaxY / maxValue;
+
+      return ChartRenderingValidationResult.valid(
+        recommendedMaxY: recommendedMaxY,
+        scalingFactor: scalingFactor,
+        warnings: warnings,
+        recommendations: recommendations,
+      );
+    } catch (e) {
+      _logError('validateChartRendering', 'Exception during chart validation: $e');
+      return ChartRenderingValidationResult.invalid('Chart validation failed: $e');
+    }
   }
 }
 
@@ -217,5 +749,241 @@ class StatGainPreview {
   @override
   String toString() {
     return 'StatGainPreview(activityType: $activityType, durationMinutes: $durationMinutes, gains: $statGains)';
+  }
+}
+
+/// Result of stat chart validation
+class StatChartValidationResult {
+  final bool isValid;
+  final bool hasWarning;
+  final String? message;
+  final double recommendedMaxY;
+
+  const StatChartValidationResult._({
+    required this.isValid,
+    required this.hasWarning,
+    this.message,
+    required this.recommendedMaxY,
+  });
+
+  factory StatChartValidationResult.valid({required double recommendedMaxY}) {
+    return StatChartValidationResult._(
+      isValid: true,
+      hasWarning: false,
+      recommendedMaxY: recommendedMaxY,
+    );
+  }
+
+  factory StatChartValidationResult.warning(String message, {required double recommendedMaxY}) {
+    return StatChartValidationResult._(
+      isValid: true,
+      hasWarning: true,
+      message: message,
+      recommendedMaxY: recommendedMaxY,
+    );
+  }
+
+  factory StatChartValidationResult.invalid(String message) {
+    return StatChartValidationResult._(
+      isValid: false,
+      hasWarning: false,
+      message: message,
+      recommendedMaxY: 5.0, // Safe default
+    );
+  }
+
+  @override
+  String toString() {
+    return 'StatChartValidationResult(isValid: $isValid, hasWarning: $hasWarning, message: $message, recommendedMaxY: $recommendedMaxY)';
+  }
+}
+
+/// Result of infinite stats validation
+class InfiniteStatsValidationResult {
+  final bool isValid;
+  final bool hasWarning;
+  final String? message;
+  final Map<StatType, double>? sanitizedStats;
+  final List<String> warnings;
+
+  const InfiniteStatsValidationResult._({
+    required this.isValid,
+    required this.hasWarning,
+    this.message,
+    this.sanitizedStats,
+    this.warnings = const [],
+  });
+
+  factory InfiniteStatsValidationResult.valid({Map<StatType, double>? sanitizedStats}) {
+    return InfiniteStatsValidationResult._(
+      isValid: true,
+      hasWarning: false,
+      sanitizedStats: sanitizedStats,
+    );
+  }
+
+  factory InfiniteStatsValidationResult.warning(
+    String message, {
+    Map<StatType, double>? sanitizedStats,
+    List<String>? warnings,
+  }) {
+    return InfiniteStatsValidationResult._(
+      isValid: true,
+      hasWarning: true,
+      message: message,
+      sanitizedStats: sanitizedStats,
+      warnings: warnings ?? [],
+    );
+  }
+
+  factory InfiniteStatsValidationResult.invalid(
+    String message, {
+    Map<StatType, double>? sanitizedStats,
+    List<String>? warnings,
+  }) {
+    return InfiniteStatsValidationResult._(
+      isValid: false,
+      hasWarning: false,
+      message: message,
+      sanitizedStats: sanitizedStats,
+      warnings: warnings ?? [],
+    );
+  }
+
+  @override
+  String toString() {
+    return 'InfiniteStatsValidationResult(isValid: $isValid, hasWarning: $hasWarning, message: $message, warnings: $warnings)';
+  }
+}
+
+/// Result of export validation for infinite stats
+class ExportValidationResult {
+  final bool isValid;
+  final bool hasWarning;
+  final String? message;
+  final Map<StatType, double>? sanitizedStats;
+  final List<String> warnings;
+
+  const ExportValidationResult._({
+    required this.isValid,
+    required this.hasWarning,
+    this.message,
+    this.sanitizedStats,
+    this.warnings = const [],
+  });
+
+  factory ExportValidationResult.valid({Map<StatType, double>? sanitizedStats}) {
+    return ExportValidationResult._(
+      isValid: true,
+      hasWarning: false,
+      sanitizedStats: sanitizedStats,
+    );
+  }
+
+  factory ExportValidationResult.warning(
+    String message, {
+    Map<StatType, double>? sanitizedStats,
+    List<String>? warnings,
+  }) {
+    return ExportValidationResult._(
+      isValid: true,
+      hasWarning: true,
+      message: message,
+      sanitizedStats: sanitizedStats,
+      warnings: warnings ?? [],
+    );
+  }
+
+  factory ExportValidationResult.invalid(
+    String message, {
+    Map<StatType, double>? sanitizedStats,
+    List<String>? warnings,
+  }) {
+    return ExportValidationResult._(
+      isValid: false,
+      hasWarning: false,
+      message: message,
+      sanitizedStats: sanitizedStats,
+      warnings: warnings ?? [],
+    );
+  }
+
+  @override
+  String toString() {
+    return 'ExportValidationResult(isValid: $isValid, hasWarning: $hasWarning, message: $message, warnings: $warnings)';
+  }
+}
+
+/// Result of edge case testing for infinite stats
+class EdgeCaseTestResult {
+  final Map<String, dynamic> testResults;
+  final List<String> issues;
+  final bool passed;
+
+  const EdgeCaseTestResult({
+    required this.testResults,
+    required this.issues,
+    required this.passed,
+  });
+
+  @override
+  String toString() {
+    return 'EdgeCaseTestResult(passed: $passed, issues: ${issues.length}, results: ${testResults.length})';
+  }
+}
+
+/// Result of chart rendering validation for infinite stats
+class ChartRenderingValidationResult {
+  final bool isValid;
+  final bool hasWarning;
+  final String? message;
+  final double? recommendedMaxY;
+  final double? scalingFactor;
+  final List<String> warnings;
+  final List<String> recommendations;
+
+  const ChartRenderingValidationResult._({
+    required this.isValid,
+    required this.hasWarning,
+    this.message,
+    this.recommendedMaxY,
+    this.scalingFactor,
+    this.warnings = const [],
+    this.recommendations = const [],
+  });
+
+  factory ChartRenderingValidationResult.valid({
+    double? recommendedMaxY,
+    double? scalingFactor,
+    List<String>? warnings,
+    List<String>? recommendations,
+  }) {
+    return ChartRenderingValidationResult._(
+      isValid: true,
+      hasWarning: (warnings?.isNotEmpty ?? false),
+      recommendedMaxY: recommendedMaxY,
+      scalingFactor: scalingFactor,
+      warnings: warnings ?? [],
+      recommendations: recommendations ?? [],
+    );
+  }
+
+  factory ChartRenderingValidationResult.invalid(
+    String message, {
+    List<String>? warnings,
+    List<String>? recommendations,
+  }) {
+    return ChartRenderingValidationResult._(
+      isValid: false,
+      hasWarning: false,
+      message: message,
+      warnings: warnings ?? [],
+      recommendations: recommendations ?? [],
+    );
+  }
+
+  @override
+  String toString() {
+    return 'ChartRenderingValidationResult(isValid: $isValid, hasWarning: $hasWarning, message: $message, recommendedMaxY: $recommendedMaxY)';
   }
 }
