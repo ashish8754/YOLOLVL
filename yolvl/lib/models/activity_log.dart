@@ -3,7 +3,59 @@ import 'enums.dart';
 
 part 'activity_log.g.dart';
 
-/// Activity log model representing a logged activity session
+/// Activity log model with enhanced stat reversal support and data migration capabilities
+/// 
+/// This model represents a logged activity session with comprehensive support for
+/// stat reversal operations during activity deletion. It includes data migration
+/// functionality for activities logged before stat gains were stored.
+/// 
+/// **Key Features:**
+/// 
+/// **Stat Reversal Support:**
+/// - Stores exact stat gains applied during logging for accurate reversal
+/// - Provides fallback calculation for legacy activities without stored gains
+/// - Supports data migration to add stat gains to older activities
+/// - Ensures perfect accuracy for stat reversal operations
+/// 
+/// **Data Migration:**
+/// - Detects activities that need stat gain migration
+/// - Provides migration methods for updating legacy data
+/// - Maintains backward compatibility with older activity logs
+/// - Non-destructive migration preserves original data
+/// 
+/// **Storage Optimization:**
+/// - Uses Hive for efficient local storage
+/// - Compact data representation for performance
+/// - JSON serialization support for backup/export
+/// - Type-safe enum handling for activity types
+/// 
+/// **Utility Methods:**
+/// - Formatted duration and timestamp display
+/// - Date-based filtering helpers (today, this week)
+/// - Activity type conversion and validation
+/// - Comprehensive data validation
+/// 
+/// **Fields:**
+/// - `id`: Unique identifier for the activity
+/// - `activityType`: String representation of ActivityType enum
+/// - `durationMinutes`: Duration of the activity in minutes
+/// - `timestamp`: When the activity was logged
+/// - `statGains`: Map of stat gains (StatType.name -> gain amount) for reversal
+/// - `expGained`: EXP gained from this activity
+/// - `notes`: Optional user notes about the activity
+/// 
+/// **Data Migration Example:**
+/// ```dart
+/// // Check if activity needs migration
+/// if (activity.needsStatGainMigration) {
+///   // Migrate to add stored stat gains
+///   activity.migrateStatGains();
+///   // Now activity supports accurate stat reversal
+/// }
+/// 
+/// // Use for stat reversal
+/// final reversals = activity.statGainsMap; // Uses stored or calculated gains
+/// ```
 @HiveType(typeId: 3)
 class ActivityLog extends HiveObject {
   @HiveField(0)
@@ -66,8 +118,34 @@ class ActivityLog extends HiveObject {
     );
   }
 
-  /// Get stat gains as Map with StatType keys and double values
-  /// Includes data migration logic for activities without stored gains
+  /// Get stat gains as Map with StatType keys and double values with migration support
+  /// 
+  /// This getter provides access to the stat gains that were applied when this activity
+  /// was logged. It prioritizes stored gains for accuracy but falls back to calculated
+  /// gains for legacy activities that were logged before stat storage was implemented.
+  /// 
+  /// **Data Source Priority:**
+  /// 1. **Stored Gains (Preferred)**: Uses exact gains stored in `statGains` field
+  /// 2. **Calculated Gains (Fallback)**: Recalculates using original activity mapping
+  /// 
+  /// **Why This Matters for Stat Reversal:**
+  /// - Stored gains provide exact accuracy for reversal operations
+  /// - Calculated gains provide reasonable accuracy for legacy activities
+  /// - Ensures all activities can be deleted regardless of when they were logged
+  /// - Maintains data integrity across app version updates
+  /// 
+  /// **Migration Considerations:**
+  /// - Legacy activities (empty statGains) trigger fallback calculation
+  /// - Migration can be performed to add stored gains to legacy activities
+  /// - Non-destructive: Original activity data is preserved
+  /// - Future-proof: Works even if calculation rules change
+  /// 
+  /// **Performance:**
+  /// - Stored gains: O(1) lookup with simple map conversion
+  /// - Calculated gains: O(1) calculation using switch statement
+  /// - Minimal overhead for both code paths
+  /// 
+  /// @return Map of StatType to gain amounts that were applied during logging
   Map<StatType, double> get statGainsMap {
     final Map<StatType, double> result = {};
     

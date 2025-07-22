@@ -20,7 +20,68 @@ import '../widgets/daily_summary_widget.dart';
 import '../widgets/animated_fab.dart';
 import '../utils/page_transitions.dart';
 
-/// Main navigation screen with bottom navigation bar
+/// Main navigation screen with responsive layout and optimized FAB positioning
+/// 
+/// This screen serves as the primary navigation hub for the application, featuring
+/// a bottom navigation bar and a floating action button (FAB) for activity logging.
+/// It implements responsive design principles and accessibility features while
+/// solving the UI overlap issue between the FAB and navigation tabs.
+/// 
+/// **Key Features:**
+/// 
+/// **Responsive FAB Positioning:**
+/// - Uses FloatingActionButtonLocation.centerDocked for optimal placement
+/// - Calculates safe area margins to prevent overlap with system UI
+/// - Adapts to different screen sizes and orientations
+/// - Maintains minimum touch target sizes for accessibility
+/// 
+/// **UI Layout Improvements:**
+/// - Eliminates overlap between FAB and stats tab
+/// - Proper spacing calculations based on device characteristics
+/// - Safe area handling for devices with notches or home indicators
+/// - Responsive font sizing with accessibility scaling support
+/// 
+/// **Accessibility Features:**
+/// - Semantic labels for screen readers
+/// - Minimum touch target sizes (48dp)
+/// - High contrast mode support
+/// - Reduced motion animation support
+/// - Proper focus management and navigation
+/// 
+/// **Performance Optimizations:**
+/// - Efficient tab switching with animation controllers
+/// - Conditional animation based on reduced motion preferences
+/// - Optimized widget rebuilds during navigation
+/// - Memory-conscious screen management
+/// 
+/// **Navigation Structure:**
+/// - Dashboard: User overview with stats and daily summary
+/// - History: Activity history with deletion capabilities
+/// - Stats: Detailed statistics and progression charts
+/// - Achievements: Achievement tracking and progress
+/// - Settings: App configuration and preferences
+/// 
+/// **FAB Integration:**
+/// - Context-aware pulse animation for user guidance
+/// - Responsive sizing based on accessibility settings
+/// - Proper positioning that works across all screen sizes
+/// - Integration with activity logging workflow
+/// 
+/// **State Management:**
+/// - Coordinates with multiple providers for data consistency
+/// - Handles loading states and error conditions
+/// - Manages navigation state and transitions
+/// - Integrates with app lifecycle management
+/// 
+/// Usage:
+/// ```dart
+/// // The main navigation screen automatically handles:
+/// // - Responsive layout across all device sizes
+/// // - Proper FAB positioning without overlaps
+/// // - Accessibility compliance
+/// // - Performance optimization
+/// MainNavigationScreen()
+/// ```
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
 
@@ -130,23 +191,32 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     final minTouchTarget = 48.0;
     final notchMargin = math.max(8.0, mediaQuery.padding.bottom * 0.1);
     
+    // Calculate required height based on content with more generous padding
+    final iconSize = math.max(20.0, textScaler.scale(20.0)); // Slightly smaller icons
+    final adjustedSelectedFontSize = math.min(selectedFontSize, 12.0); // Cap font size
+    final adjustedUnselectedFontSize = math.min(unselectedFontSize, 10.0); // Cap font size
+    final requiredHeight = iconSize + adjustedSelectedFontSize + 24.0; // icon + text + generous padding
+    final bottomAppBarHeight = math.max(kBottomNavigationBarHeight + 16, requiredHeight + 16);
+    
     return BottomAppBar(
       shape: const CircularNotchedRectangle(),
       notchMargin: notchMargin,
       color: Theme.of(context).colorScheme.surfaceContainer,
-      height: math.max(kBottomNavigationBarHeight, minTouchTarget + 8),
-      child: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _onTabTapped,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        selectedItemColor: Theme.of(context).colorScheme.primary,
-        unselectedItemColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-        selectedFontSize: selectedFontSize,
-        unselectedFontSize: unselectedFontSize,
-        // Ensure proper icon size for accessibility
-        iconSize: math.max(24.0, textScaler.scale(24.0)),
+      height: bottomAppBarHeight,
+      child: SizedBox(
+        height: bottomAppBarHeight - 8, // Leave some space for the BottomAppBar itself
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: _onTabTapped,
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          selectedItemColor: Theme.of(context).colorScheme.primary,
+          unselectedItemColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+          selectedFontSize: adjustedSelectedFontSize,
+          unselectedFontSize: adjustedUnselectedFontSize,
+          // Ensure proper icon size for accessibility
+          iconSize: iconSize,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard),
@@ -174,10 +244,41 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
             tooltip: 'Open Settings',
           ),
         ],
+        ),
       ),
     );
   }
 
+  /// Build the floating action button with responsive positioning and accessibility support
+  /// 
+  /// This method creates a properly positioned FAB that solves the overlap issue with
+  /// the bottom navigation bar. It implements responsive design principles and
+  /// accessibility features while providing visual feedback for user engagement.
+  /// 
+  /// **Positioning Solution:**
+  /// - Uses safe area calculations to prevent overlap with system UI
+  /// - Applies responsive margins based on device characteristics
+  /// - Maintains proper spacing above the bottom navigation bar
+  /// - Adapts to different screen sizes and orientations
+  /// 
+  /// **Accessibility Features:**
+  /// - Responsive sizing based on text scaling preferences
+  /// - Minimum touch target size enforcement (56dp base)
+  /// - Context-aware tooltips for user guidance
+  /// - Semantic labels for screen readers
+  /// 
+  /// **Visual Feedback:**
+  /// - Pulse animation when no activities logged today
+  /// - Context-aware tooltip messages
+  /// - Smooth transitions and animations
+  /// - Integration with app theme and colors
+  /// 
+  /// **Performance Considerations:**
+  /// - Efficient Consumer usage for minimal rebuilds
+  /// - Optimized animation handling
+  /// - Memory-conscious widget construction
+  /// 
+  /// @return Properly positioned and accessible FloatingActionButton widget
   Widget _buildFloatingActionButton() {
     return Consumer<ActivityProvider>(
       builder: (context, activityProvider, child) {

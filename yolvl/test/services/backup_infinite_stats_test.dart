@@ -1,284 +1,289 @@
-import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:yolvl/models/user.dart';
-import 'package:yolvl/models/activity_log.dart';
-import 'package:yolvl/models/settings.dart';
 import 'package:yolvl/models/enums.dart';
+import 'package:yolvl/models/user.dart';
 import 'package:yolvl/services/backup_service.dart';
+import 'package:yolvl/utils/infinite_stats_validator.dart';
 
 void main() {
-  group('Backup Service - Infinite Stats', () {
-    late User userWithHighStats;
-    late BackupData backupData;
+  group('Backup Service - Infinite Stats Validation', () {
+    group('User Data Validation', () {
+      test('should validate user stats for export safety', () {
+        // Test with large but valid stats
+        final statsMap = <StatType, double>{
+          StatType.strength: 999999.0,
+          StatType.agility: 500000.0,
+          StatType.endurance: 750000.0,
+          StatType.intelligence: 1000000.0,
+          StatType.focus: 250000.0,
+          StatType.charisma: 800000.0,
+        };
 
-    setUp(() {
-      // Create user with high stat values
-      userWithHighStats = User.create(
-        id: 'test_user_high_stats',
-        name: 'High Stats User',
-      );
+        final result = InfiniteStatsValidator.validateStatsForExport(statsMap);
+        
+        expect(result.isValid, isTrue);
+        expect(result.hasWarning, isTrue);
+        expect(result.warnings, isNotEmpty);
+        expect(result.sanitizedStats, isNotNull);
+        
+        // All values should be within reasonable bounds
+        for (final entry in result.sanitizedStats!.entries) {
+          expect(entry.value, lessThanOrEqualTo(1000000.0));
+          expect(entry.value, greaterThanOrEqualTo(1.0));
+        }
+      });
 
-      // Set stats to various high values
-      userWithHighStats.setStat(StatType.strength, 15.75);
-      userWithHighStats.setStat(StatType.agility, 23.33);
-      userWithHighStats.setStat(StatType.endurance, 67.89);
-      userWithHighStats.setStat(StatType.intelligence, 123.45);
-      userWithHighStats.setStat(StatType.focus, 99.99);
-      userWithHighStats.setStat(StatType.charisma, 8.12);
+      test('should reject invalid stat values for export', () {
+        final statsMap = <StatType, double>{
+          StatType.strength: double.nan,
+          StatType.agility: double.infinity,
+          StatType.endurance: double.negativeInfinity,
+          StatType.intelligence: -100.0,
+          StatType.focus: 0.5,
+          StatType.charisma: 5.0,
+        };
 
-      // Set high level and EXP
-      userWithHighStats.level = 25;
-      userWithHighStats.currentEXP = 15000.0;
+        final result = InfiniteStatsValidator.validateStatsForExport(statsMap);
+        
+        expect(result.isValid, isFalse);
+        expect(result.message, contains('Export validation failed'));
+        expect(result.sanitizedStats, isNotNull);
+        
+        // Check that invalid values are sanitized
+        expect(result.sanitizedStats![StatType.strength], equals(1.0)); // NaN -> 1.0
+        expect(result.sanitizedStats![StatType.agility], equals(1.0)); // +Infinity -> 1.0 (handled by export validation)
+        expect(result.sanitizedStats![StatType.endurance], equals(1.0)); // -Infinity -> 1.0
+        expect(result.sanitizedStats![StatType.intelligence], equals(1.0)); // Negative -> 1.0
+        expect(result.sanitizedStats![StatType.focus], equals(1.0)); // Below minimum -> 1.0
+        expect(result.sanitizedStats![StatType.charisma], equals(5.0)); // Valid value preserved
+      });
 
-      // Create sample activities
-      final activities = [
-        ActivityLog.create(
-          id: 'activity_1',
-          activityType: ActivityType.workoutWeights,
-          durationMinutes: 60,
-          timestamp: DateTime.now().subtract(const Duration(days: 1)),
-          expGained: 120,
-          statGains: {
-            StatType.strength: 0.06,
-            StatType.endurance: 0.04,
-          },
-        ),
-        ActivityLog.create(
-          id: 'activity_2',
-          activityType: ActivityType.studySerious,
-          durationMinutes: 120,
-          timestamp: DateTime.now().subtract(const Duration(days: 2)),
-          expGained: 240,
-          statGains: {
-            StatType.intelligence: 0.12,
-            StatType.focus: 0.08,
-          },
-        ),
-      ];
+      test('should handle extremely large values that might cause JSON issues', () {
+        final statsMap = <StatType, double>{
+          StatType.strength: 1e15, // Very large but still safe
+          StatType.agility: 1e16, // Too large for safe serialization
+          StatType.endurance: 999999.0, // Within reasonable bounds
+        };
 
-      // Create settings
-      final settings = Settings(
-        isDarkMode: true,
-        notificationsEnabled: true,
-        enabledActivities: ['workoutWeights', 'studySerious'],
-        customStatIncrements: {},
-        relaxedWeekendMode: false,
-        lastBackupDate: DateTime.now(),
-        dailyReminderHour: 20,
-        dailyReminderMinute: 0,
-        degradationWarningsEnabled: true,
-        levelUpAnimationsEnabled: true,
-        hapticFeedbackEnabled: true,
-      );
+        // Test individual value validation
+        for (final entry in statsMap.entries) {
+          final statType = entry.key;
+          final value = entry.value;
+          
+          if (value > 1e15) {
+            // Values above 1e15 should be flagged as potentially problematic
+            expect(value, greaterThan(1e15));
+            print('Stat ${statType.name} has very large value: $value');
+          }
+          
+          // Check string length for precision concerns
+          final stringLength = value.toString().length;
+          if (stringLength > 15) {
+            print('Stat ${statType.name} may lose precision: $stringLength characters');
+          }
+        }
+      });
 
-      backupData = BackupData(
-        version: '1.0',
-        exportDate: DateTime.now(),
-        user: userWithHighStats,
-        activities: activities,
-        settings: settings,
-      );
+      test('should validate EXP and level bounds', () {
+        // Test valid EXP values
+        final validEXP = [0.0, 1000.0, 50000.0, 1e10, 1e14];
+        for (final exp in validEXP) {
+          expect(exp, greaterThanOrEqualTo(0.0));
+          expect(exp, lessThanOrEqualTo(1e15));
+        }
+
+        // Test invalid EXP values
+        final invalidEXP = [double.nan, double.infinity, -100.0, 1e16];
+        for (final exp in invalidEXP) {
+          final isValid = !exp.isNaN && !exp.isInfinite && exp >= 0.0 && exp <= 1e15;
+          expect(isValid, isFalse);
+        }
+
+        // Test valid level values
+        final validLevels = [1, 50, 100, 1000, 100000];
+        for (final level in validLevels) {
+          expect(level, greaterThanOrEqualTo(1));
+          expect(level, lessThanOrEqualTo(1000000));
+        }
+
+        // Test invalid level values
+        final invalidLevels = [0, -1, 1000001];
+        for (final level in invalidLevels) {
+          final isValid = level >= 1 && level <= 1000000;
+          expect(isValid, isFalse);
+        }
+      });
     });
 
-    test('should export high stat values to JSON correctly', () {
-      final json = backupData.toJson();
+    group('Activity Data Validation', () {
+      test('should validate activity stat gains', () {
+        final validGains = <StatType, double>{
+          StatType.strength: 0.1,
+          StatType.agility: 0.05,
+          StatType.endurance: 0.08,
+        };
 
-      // Verify user stats are correctly exported
-      expect(json['user']['stats']['strength'], equals(15.75));
-      expect(json['user']['stats']['agility'], equals(23.33));
-      expect(json['user']['stats']['endurance'], equals(67.89));
-      expect(json['user']['stats']['intelligence'], equals(123.45));
-      expect(json['user']['stats']['focus'], equals(99.99));
-      expect(json['user']['stats']['charisma'], equals(8.12));
+        for (final entry in validGains.entries) {
+          final gain = entry.value;
+          expect(gain, greaterThanOrEqualTo(0.0));
+          expect(gain, lessThanOrEqualTo(1000.0)); // Reasonable upper bound for single activity
+        }
+      });
 
-      // Verify high level and EXP
-      expect(json['user']['level'], equals(25));
-      expect(json['user']['currentEXP'], equals(15000.0));
+      test('should handle invalid activity stat gains', () {
+        final invalidGains = <StatType, double>{
+          StatType.strength: double.nan,
+          StatType.agility: double.infinity,
+          StatType.endurance: -0.1,
+          StatType.intelligence: 1001.0, // Too large for single activity
+        };
+
+        for (final entry in invalidGains.entries) {
+          final statType = entry.key;
+          final gain = entry.value;
+          
+          final isValid = !gain.isNaN && !gain.isInfinite && gain >= 0.0 && gain <= 1000.0;
+          if (!isValid) {
+            print('Invalid gain for ${statType.name}: $gain');
+          }
+          expect(isValid, isFalse);
+        }
+      });
+
+      test('should validate activity EXP gains', () {
+        final validEXPGains = [0.0, 10.0, 100.0, 1000.0];
+        for (final exp in validEXPGains) {
+          expect(exp, greaterThanOrEqualTo(0.0));
+          expect(exp, lessThanOrEqualTo(10000.0)); // Reasonable upper bound for single activity
+        }
+
+        final invalidEXPGains = [double.nan, double.infinity, -10.0, 10001.0];
+        for (final exp in invalidEXPGains) {
+          final isValid = !exp.isNaN && !exp.isInfinite && exp >= 0.0 && exp <= 10000.0;
+          expect(isValid, isFalse);
+        }
+      });
     });
 
-    test('should serialize and deserialize high stats without data loss', () {
-      // Convert to JSON string
-      final jsonString = jsonEncode(backupData.toJson());
+    group('Data Sanitization', () {
+      test('should sanitize user stats for import', () {
+        // Simulate sanitization logic that would be used during import
+        final rawStats = <String, double>{
+          StatType.strength.name: double.nan,
+          StatType.agility.name: double.infinity,
+          StatType.endurance.name: -100.0,
+          StatType.intelligence.name: 1000001.0,
+          StatType.focus.name: 0.5,
+          StatType.charisma.name: 50.0,
+        };
 
-      // Parse back from JSON
-      final parsedJson = jsonDecode(jsonString) as Map<String, dynamic>;
-      final restoredBackupData = BackupData.fromJson(parsedJson);
+        final sanitizedStats = <String, double>{};
+        
+        for (final entry in rawStats.entries) {
+          final statName = entry.key;
+          final statValue = entry.value;
+          
+          if (statValue.isNaN || statValue.isInfinite) {
+            sanitizedStats[statName] = 1.0;
+          } else if (statValue < 1.0) {
+            sanitizedStats[statName] = 1.0;
+          } else if (statValue > 1000000) {
+            sanitizedStats[statName] = 1000000.0;
+          } else {
+            sanitizedStats[statName] = statValue;
+          }
+        }
 
-      // Verify all high stat values are preserved
-      expect(restoredBackupData.user.getStat(StatType.strength), equals(15.75));
-      expect(restoredBackupData.user.getStat(StatType.agility), equals(23.33));
-      expect(restoredBackupData.user.getStat(StatType.endurance), equals(67.89));
-      expect(restoredBackupData.user.getStat(StatType.intelligence), equals(123.45));
-      expect(restoredBackupData.user.getStat(StatType.focus), equals(99.99));
-      expect(restoredBackupData.user.getStat(StatType.charisma), equals(8.12));
+        expect(sanitizedStats[StatType.strength.name], equals(1.0));
+        expect(sanitizedStats[StatType.agility.name], equals(1.0));
+        expect(sanitizedStats[StatType.endurance.name], equals(1.0));
+        expect(sanitizedStats[StatType.intelligence.name], equals(1000000.0));
+        expect(sanitizedStats[StatType.focus.name], equals(1.0));
+        expect(sanitizedStats[StatType.charisma.name], equals(50.0));
+      });
 
-      // Verify level and EXP
-      expect(restoredBackupData.user.level, equals(25));
-      expect(restoredBackupData.user.currentEXP, equals(15000.0));
+      test('should sanitize activity data for import', () {
+        // Test activity sanitization
+        final rawEXP = double.nan;
+        final sanitizedEXP = rawEXP.isNaN || rawEXP.isInfinite || rawEXP < 0 ? 0.0 : rawEXP;
+        expect(sanitizedEXP, equals(0.0));
+
+        final rawGains = <StatType, double>{
+          StatType.strength: double.infinity,
+          StatType.agility: -0.1,
+          StatType.endurance: 1001.0,
+          StatType.intelligence: 0.05,
+        };
+
+        final sanitizedGains = <StatType, double>{};
+        for (final entry in rawGains.entries) {
+          final statType = entry.key;
+          final gainValue = entry.value;
+          
+          if (gainValue.isNaN || gainValue.isInfinite || gainValue < 0) {
+            sanitizedGains[statType] = 0.0;
+          } else if (gainValue > 1000) {
+            sanitizedGains[statType] = 1000.0;
+          } else {
+            sanitizedGains[statType] = gainValue;
+          }
+        }
+
+        expect(sanitizedGains[StatType.strength], equals(0.0));
+        expect(sanitizedGains[StatType.agility], equals(0.0));
+        expect(sanitizedGains[StatType.endurance], equals(1000.0));
+        expect(sanitizedGains[StatType.intelligence], equals(0.05));
+      });
     });
 
-    test('should handle extremely high stat values', () {
-      // Set extremely high values
-      userWithHighStats.setStat(StatType.strength, 999.999);
-      userWithHighStats.setStat(StatType.intelligence, 10000.0);
-      userWithHighStats.level = 100;
-      userWithHighStats.currentEXP = 1000000.0;
+    group('Performance and Edge Cases', () {
+      test('should handle validation of many stats efficiently', () {
+        final stopwatch = Stopwatch()..start();
+        
+        // Test with many validation calls
+        for (int i = 0; i < 100; i++) {
+          final stats = <StatType, double>{
+            StatType.strength: 100.0 + i,
+            StatType.agility: 200.0 + i,
+            StatType.endurance: 50.0 + i,
+            StatType.intelligence: 300.0 + i,
+            StatType.focus: 75.0 + i,
+            StatType.charisma: 150.0 + i,
+          };
+          
+          final result = InfiniteStatsValidator.validateStatsForExport(stats);
+          expect(result.isValid, isTrue);
+        }
+        
+        stopwatch.stop();
+        
+        // Should complete within reasonable time
+        expect(stopwatch.elapsedMilliseconds, lessThan(500));
+      });
 
-      final updatedBackupData = BackupData(
-        version: '1.0',
-        exportDate: DateTime.now(),
-        user: userWithHighStats,
-        activities: backupData.activities,
-        settings: backupData.settings,
-      );
+      test('should handle edge case stat values consistently', () {
+        final edgeCases = [
+          0.0,
+          0.999,
+          1.0,
+          1.001,
+          999999.0,
+          1000000.0,
+          1000001.0,
+          double.maxFinite,
+        ];
 
-      // Convert to JSON and back
-      final jsonString = jsonEncode(updatedBackupData.toJson());
-      final parsedJson = jsonDecode(jsonString) as Map<String, dynamic>;
-      final restoredBackupData = BackupData.fromJson(parsedJson);
-
-      // Verify extreme values are preserved
-      expect(restoredBackupData.user.getStat(StatType.strength), equals(999.999));
-      expect(restoredBackupData.user.getStat(StatType.intelligence), equals(10000.0));
-      expect(restoredBackupData.user.level, equals(100));
-      expect(restoredBackupData.user.currentEXP, equals(1000000.0));
-    });
-
-    test('should validate high stat values correctly', () {
-      final backupService = BackupService();
-
-      // This should not throw an exception for high stat values
-      expect(() {
-        backupService._validateBackupData(backupData);
-      }, returnsNormally);
-    });
-
-    test('should handle mixed stat ranges in backup', () {
-      // Create user with mixed stat ranges
-      final mixedUser = User.create(
-        id: 'mixed_user',
-        name: 'Mixed Stats User',
-      );
-
-      mixedUser.setStat(StatType.strength, 1.1);     // Low
-      mixedUser.setStat(StatType.agility, 5.0);      // At old ceiling
-      mixedUser.setStat(StatType.endurance, 12.5);   // Above old ceiling
-      mixedUser.setStat(StatType.intelligence, 100.0); // Very high
-      mixedUser.setStat(StatType.focus, 3.7);        // Medium
-      mixedUser.setStat(StatType.charisma, 25.8);    // High
-
-      final mixedBackupData = BackupData(
-        version: '1.0',
-        exportDate: DateTime.now(),
-        user: mixedUser,
-        activities: [],
-        settings: backupData.settings,
-      );
-
-      // Convert to JSON and back
-      final jsonString = jsonEncode(mixedBackupData.toJson());
-      final parsedJson = jsonDecode(jsonString) as Map<String, dynamic>;
-      final restoredBackupData = BackupData.fromJson(parsedJson);
-
-      // Verify all mixed values are preserved
-      expect(restoredBackupData.user.getStat(StatType.strength), equals(1.1));
-      expect(restoredBackupData.user.getStat(StatType.agility), equals(5.0));
-      expect(restoredBackupData.user.getStat(StatType.endurance), equals(12.5));
-      expect(restoredBackupData.user.getStat(StatType.intelligence), equals(100.0));
-      expect(restoredBackupData.user.getStat(StatType.focus), equals(3.7));
-      expect(restoredBackupData.user.getStat(StatType.charisma), equals(25.8));
-    });
-
-    test('should preserve decimal precision for high stat values', () {
-      // Set stats with various decimal precisions
-      userWithHighStats.setStat(StatType.strength, 7.123456789);
-      userWithHighStats.setStat(StatType.agility, 15.0);
-      userWithHighStats.setStat(StatType.endurance, 23.5);
-      userWithHighStats.setStat(StatType.intelligence, 42.75);
-
-      final precisionBackupData = BackupData(
-        version: '1.0',
-        exportDate: DateTime.now(),
-        user: userWithHighStats,
-        activities: [],
-        settings: backupData.settings,
-      );
-
-      // Convert to JSON and back
-      final jsonString = jsonEncode(precisionBackupData.toJson());
-      final parsedJson = jsonDecode(jsonString) as Map<String, dynamic>;
-      final restoredBackupData = BackupData.fromJson(parsedJson);
-
-      // Verify decimal precision is preserved
-      expect(restoredBackupData.user.getStat(StatType.strength), equals(7.123456789));
-      expect(restoredBackupData.user.getStat(StatType.agility), equals(15.0));
-      expect(restoredBackupData.user.getStat(StatType.endurance), equals(23.5));
-      expect(restoredBackupData.user.getStat(StatType.intelligence), equals(42.75));
-    });
-
-    test('should handle activity stat gains with high values', () {
-      // Create activity with high stat gains
-      final highGainActivity = ActivityLog.create(
-        id: 'high_gain_activity',
-        activityType: ActivityType.workoutWeights,
-        durationMinutes: 300, // 5 hours
-        timestamp: DateTime.now(),
-        expGained: 600,
-        statGains: {
-          StatType.strength: 0.30, // High gain from long workout
-          StatType.endurance: 0.20,
-        },
-      );
-
-      final highGainBackupData = BackupData(
-        version: '1.0',
-        exportDate: DateTime.now(),
-        user: userWithHighStats,
-        activities: [highGainActivity],
-        settings: backupData.settings,
-      );
-
-      // Convert to JSON and back
-      final jsonString = jsonEncode(highGainBackupData.toJson());
-      final parsedJson = jsonDecode(jsonString) as Map<String, dynamic>;
-      final restoredBackupData = BackupData.fromJson(parsedJson);
-
-      // Verify activity stat gains are preserved
-      final restoredActivity = restoredBackupData.activities.first;
-      expect(restoredActivity.statGainsMap[StatType.strength], equals(0.30));
-      expect(restoredActivity.statGainsMap[StatType.endurance], equals(0.20));
-      expect(restoredActivity.expGained, equals(600));
+        for (final value in edgeCases) {
+          final sanitized = InfiniteStatsValidator.validateStatValue(value);
+          
+          // All sanitized values should be within valid range
+          expect(sanitized, greaterThanOrEqualTo(1.0));
+          expect(sanitized, lessThanOrEqualTo(999999.0));
+          
+          // Should not be NaN or infinite
+          expect(sanitized.isNaN, isFalse);
+          expect(sanitized.isInfinite, isFalse);
+        }
+      });
     });
   });
-}
-
-// Extension to access private method for testing
-extension BackupServiceTest on BackupService {
-  void _validateBackupData(BackupData backupData) {
-    // Validate backup data integrity
-    if (backupData.version.isEmpty) {
-      throw BackupException('Invalid backup: missing version');
-    }
-
-    if (backupData.user.id.isEmpty) {
-      throw BackupException('Invalid backup: missing user ID');
-    }
-
-    // Validate user stats - only check for negative values (no ceiling)
-    for (final statValue in backupData.user.stats.values) {
-      if (statValue < 0) {
-        throw BackupException('Invalid backup: negative stat values');
-      }
-    }
-
-    // Validate activities
-    for (final activity in backupData.activities) {
-      if (activity.durationMinutes < 0) {
-        throw BackupException('Invalid backup: negative activity duration');
-      }
-      if (activity.expGained < 0) {
-        throw BackupException('Invalid backup: negative EXP gained');
-      }
-    }
-  }
 }

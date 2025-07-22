@@ -4,7 +4,63 @@ import 'enums.dart';
 
 part 'user.g.dart';
 
-/// User model representing the player's profile and progression
+/// User model with infinite stats progression support and comprehensive stat management
+/// 
+/// This model represents the player's profile and progression data with full support
+/// for the infinite stats system. It removes the previous 5.0 stat ceiling while
+/// maintaining data integrity and providing comprehensive stat management methods.
+/// 
+/// **Key Features:**
+/// 
+/// **Infinite Stats System:**
+/// - No ceiling limits on stat values (removed 5.0 maximum)
+/// - Maintains 1.0 minimum floor for all stats
+/// - Supports extremely large stat values safely
+/// - Provides type-safe stat access and modification methods
+/// 
+/// **EXP and Leveling:**
+/// - Exponential EXP threshold calculation: 1000 * (1.2^(level-1))
+/// - Support for level progression and level-down scenarios
+/// - Automatic EXP threshold and progress calculations
+/// - Level-up detection and excess EXP handling
+/// 
+/// **Data Management:**
+/// - Efficient Hive storage with type adapters
+/// - JSON serialization for backup/export functionality
+/// - Activity tracking with last activity dates
+/// - Onboarding state management
+/// 
+/// **Stat Management Methods:**
+/// - Type-safe stat getting and setting
+/// - Stat addition with automatic validation
+/// - Activity date tracking per activity type
+/// - Comprehensive stat validation
+/// 
+/// **Storage Fields:**
+/// - `id`: Unique user identifier
+/// - `name`: User display name
+/// - `avatarPath`: Optional avatar image path
+/// - `level`: Current user level (minimum 1)
+/// - `currentEXP`: Current EXP amount (minimum 0)
+/// - `stats`: Map of stat values (StatType.name -> value)
+/// - `createdAt`: Account creation timestamp
+/// - `lastActive`: Last activity timestamp
+/// - `hasCompletedOnboarding`: Onboarding completion status
+/// - `lastActivityDates`: Last activity dates per activity type
+/// 
+/// **Usage Examples:**
+/// ```dart
+/// // Create new user with default stats (all at 1.0)
+/// final user = User.create(id: 'user_123', name: 'Player');
+/// 
+/// // Infinite stat progression
+/// user.setStat(StatType.strength, 25.7); // No ceiling limit
+/// user.addToStat(StatType.agility, 0.5);  // Incremental gains
+/// 
+/// // EXP and leveling
+/// final canLevel = user.canLevelUp;
+/// final progress = user.expProgress; // 0.0 to 1.0
+/// ```
 @HiveType(typeId: 2)
 class User extends HiveObject {
   @HiveField(0)

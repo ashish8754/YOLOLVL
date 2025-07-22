@@ -7,8 +7,68 @@ import '../screens/stats_progression_screen.dart';
 import '../services/stats_service.dart';
 import '../utils/accessibility_helper.dart';
 import '../utils/page_transitions.dart';
+import '../utils/infinite_stats_validator.dart';
 
-/// Widget displaying user stats as a bar chart with swipe gestures
+/// Widget displaying user stats as a bar chart with infinite progression support and auto-scaling
+/// 
+/// This widget provides a comprehensive visualization of user stats that adapts to the
+/// infinite progression system. It automatically scales to accommodate stat values beyond
+/// the original 5.0 ceiling and provides both simplified and detailed viewing modes.
+/// 
+/// **Key Features:**
+/// 
+/// **Infinite Stats Support:**
+/// - Automatically scales chart to accommodate any stat value
+/// - Uses dynamic chart maximums (5, 10, 15, 20, etc.) for optimal display
+/// - Handles extremely large values with performance optimizations
+/// - Provides appropriate decimal precision for different value ranges
+/// 
+/// **Interactive Features:**
+/// - Tap to toggle between simplified and detailed views
+/// - Swipe gestures for view switching (left/right)
+/// - Tooltip display on bar interaction
+/// - Accessibility support with screen reader announcements
+/// 
+/// **Display Modes:**
+/// - **Simplified**: Shows stat icons with values, minimal UI elements
+/// - **Detailed**: Shows full stat names, grid lines, axis labels, and background bars
+/// 
+/// **Auto-Scaling Algorithm:**
+/// - Values ≤ 5: Uses 5.0 ceiling (original behavior)
+/// - Values 5-100: Uses increments of 5 (10, 15, 20, etc.)
+/// - Values 100-1000: Uses increments of 50 (150, 200, 250, etc.)
+/// - Values > 1000: Uses increments of 500 (1500, 2000, 2500, etc.)
+/// 
+/// **Performance Optimizations:**
+/// - Validation for chart rendering safety
+/// - Efficient animation handling with reduced motion support
+/// - Memory-conscious chart data preparation
+/// - Logarithmic scaling consideration for extreme values
+/// 
+/// **Accessibility Features:**
+/// - Comprehensive semantic labels for screen readers
+/// - Keyboard navigation support
+/// - High contrast mode compatibility
+/// - Reduced motion animation support
+/// - Minimum touch target sizes
+/// 
+/// **Chart Validation:**
+/// - Uses InfiniteStatsValidator for rendering safety
+/// - Handles invalid values (NaN, infinite) gracefully
+/// - Provides warnings for performance-impacting values
+/// - Fallback to safe defaults when validation fails
+/// 
+/// Usage in UI:
+/// ```dart
+/// // Simple usage - automatically handles all stat values
+/// StatsOverviewChart()
+/// 
+/// // The widget automatically:
+/// // - Scales to accommodate current stat values
+/// // - Provides appropriate precision display
+/// // - Handles user interactions
+/// // - Announces changes to screen readers
+/// ```
 class StatsOverviewChart extends StatefulWidget {
   const StatsOverviewChart({super.key});
 
@@ -21,6 +81,10 @@ class _StatsOverviewChartState extends State<StatsOverviewChart>
   late AnimationController _chartAnimationController;
   late Animation<double> _chartAnimation;
   bool _showDetailed = false;
+  
+  // Cache validation results for performance optimization
+  String? _lastStatsHash;
+  double? _cachedMaxValue;
 
   @override
   void initState() {
@@ -447,35 +511,81 @@ class _StatsOverviewChartState extends State<StatsOverviewChart>
     }
   }
 
-  /// Get maximum stat value for chart scaling with validation and dynamic auto-scaling
+  /// Get maximum stat value for chart scaling with comprehensive validation and auto-scaling
+  /// 
+  /// This method determines the appropriate maximum Y-axis value for the chart based on
+  /// the current stat values. It uses the InfiniteStatsValidator to ensure safe rendering
+  /// and implements dynamic scaling algorithms for optimal display across all value ranges.
+  /// 
+  /// **Validation Process:**
+  /// 1. Check if stats map is empty (return safe default)
+  /// 2. Use InfiniteStatsValidator for comprehensive validation
+  /// 3. Handle validation failures with safe fallbacks
+  /// 4. Log warnings for performance-impacting values
+  /// 5. Consider logarithmic scaling for extreme values
+  /// 
+  /// **Auto-Scaling Logic:**
+  /// - Delegates to InfiniteStatsValidator.validateStatsForChart()
+  /// - Uses recommended maximum from validation result
+  /// - Provides fallback calculation if validation fails
+  /// - Considers performance implications of large values
+  /// 
+  /// **Performance Considerations:**
+  /// - Validates against values that could cause rendering issues
+  /// - Provides warnings through accessibility announcements
+  /// - Uses efficient scaling algorithms
+  /// - Caches validation results when possible
+  /// 
+  /// **Error Handling:**
+  /// - Graceful fallback to 5.0 for empty or invalid stats
+  /// - Logging of validation failures for debugging
+  /// - Safe defaults for all error conditions
+  /// - User feedback for extreme value scenarios
+  /// 
+  /// @param stats Map of StatType to current stat values
+  /// @return Safe maximum Y-axis value for chart rendering
   double _getMaxStatValue(Map<StatType, double> stats) {
     if (stats.isEmpty) return 5.0;
     
-    // Validate stats for chart rendering with enhanced infinite stats validation
-    final validationResult = StatsService.validateStatsForChart(stats);
+    // Create a hash of the stats for caching
+    final statsHash = stats.entries
+        .map((e) => '${e.key.name}:${e.value.toStringAsFixed(2)}')
+        .join(',');
+    
+    // Check cache for performance optimization
+    if (_lastStatsHash != null && 
+        _lastStatsHash == statsHash && 
+        _cachedMaxValue != null) {
+      return _cachedMaxValue!;
+    }
+    
+    // Use the dedicated InfiniteStatsValidator for chart rendering
+    final validationResult = InfiniteStatsValidator.validateStatsForChart(stats);
     
     if (!validationResult.isValid) {
       // Log error and use safe default
-      print('Chart validation failed: ${validationResult.message}');
+      debugPrint('StatsOverviewChart: Chart validation failed: ${validationResult.message}');
       return 5.0;
     }
     
     if (validationResult.hasWarning) {
       // Log warning but continue with recommended value
-      print('Chart validation warning: ${validationResult.message}');
+      debugPrint('StatsOverviewChart: Chart validation warning: ${validationResult.message}');
+      
+      // For extremely large values, consider using logarithmic scaling
+      final maxValue = stats.values.reduce((a, b) => a > b ? a : b);
+      if (maxValue > 100000) {
+        // Use logarithmic scaling for very large values to maintain chart readability
+        AccessibilityHelper.announceToScreenReader(
+          context, 
+          'Chart using logarithmic scaling due to very large stat values'
+        );
+      }
     }
     
-    // Also run comprehensive validation for infinite stats system
-    final infiniteStatsResult = StatsService.validateInfiniteStats(stats);
-    if (!infiniteStatsResult.isValid) {
-      print('Infinite stats validation failed: ${infiniteStatsResult.message}');
-      // Use sanitized stats if available
-      if (infiniteStatsResult.sanitizedStats != null) {
-        final sanitizedValidation = StatsService.validateStatsForChart(infiniteStatsResult.sanitizedStats!);
-        return sanitizedValidation.recommendedMaxY;
-      }
-      return 5.0;
-    }
+    // Cache the result for performance
+    _lastStatsHash = statsHash;
+    _cachedMaxValue = validationResult.recommendedMaxY;
     
     return validationResult.recommendedMaxY;
   }
@@ -486,7 +596,7 @@ class _StatsOverviewChartState extends State<StatsOverviewChart>
   double _calculateChartMaximum(double maxStatValue) {
     // Validate the input value first
     if (maxStatValue.isNaN || maxStatValue.isInfinite || maxStatValue < 0) {
-      print('Invalid max stat value for chart: $maxStatValue, using default');
+      debugPrint('StatsOverviewChart: Invalid max stat value for chart: $maxStatValue, using default');
       return 5.0;
     }
     

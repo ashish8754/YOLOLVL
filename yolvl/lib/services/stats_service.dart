@@ -1,9 +1,93 @@
+import 'package:flutter/foundation.dart';
 import '../models/enums.dart';
 
-/// Service for handling stat progression calculations
+/// Service for handling stat progression calculations and infinite stats system
+/// 
+/// This service provides comprehensive functionality for:
+/// - Calculating stat gains based on activity type and duration
+/// - Managing infinite stat progression (no ceiling limits)
+/// - Validating stat values for storage, calculation, and display
+/// - Handling stat reversals for activity deletion
+/// - Chart rendering validation and auto-scaling
+/// - Export/import validation for backup systems
+/// 
+/// **Key Features:**
+/// 
+/// **Infinite Stats System:**
+/// - Removes the previous 5.0 stat ceiling to allow unlimited progression
+/// - Maintains 1.0 minimum floor to prevent invalid stat values
+/// - Handles extremely large values safely for storage and display
+/// - Provides validation for chart rendering performance
+/// 
+/// **Stat Reversal System:**
+/// - Calculates exact stat reversals for activity deletion
+/// - Uses stored stat gains when available for accuracy
+/// - Falls back to calculated gains for legacy activities
+/// - Enforces minimum floor constraints during reversal
+/// 
+/// **Validation Systems:**
+/// - Comprehensive validation for infinite stat values
+/// - Chart rendering validation for performance optimization
+/// - Export/import validation for data integrity
+/// - Edge case testing for extreme values
+/// 
+/// **Performance Considerations:**
+/// - Efficient calculations for large stat values
+/// - Chart auto-scaling algorithms for optimal display
+/// - Memory usage optimization for extreme values
+/// - Logarithmic scaling options for very large numbers
+/// 
+/// Usage Examples:
+/// ```dart
+/// // Calculate stat gains
+/// final gains = StatsService.calculateStatGains(ActivityType.workoutWeights, 60);
+/// 
+/// // Validate infinite stats
+/// final validation = StatsService.validateInfiniteStats(userStats);
+/// if (validation.isValid) {
+///   // Safe to use stats
+/// }
+/// 
+/// // Calculate stat reversals for deletion
+/// final reversals = StatsService.calculateStatReversals(
+///   ActivityType.workoutWeights, 60, storedGains
+/// );
+/// ```
 class StatsService {
   /// Calculate stat gains for a given activity type and duration
-  /// Returns a map of StatType to gain amount
+  /// 
+  /// This method calculates the exact stat gains that should be applied when logging
+  /// an activity. The calculations are based on predefined rates per hour for each
+  /// activity type, with special handling for "Quit Bad Habit" which provides fixed gains.
+  /// 
+  /// **Calculation Rules:**
+  /// - Most activities use hourly rates (e.g., 0.06 Strength per hour for weight training)
+  /// - "Quit Bad Habit" provides fixed gains regardless of duration
+  /// - Multiple stats can be affected by a single activity type
+  /// - No ceiling limits - stats can grow infinitely
+  /// 
+  /// **Activity Type Mappings:**
+  /// - Weight Training: +0.06 Strength/hr, +0.04 Endurance/hr
+  /// - Cardio: +0.06 Agility/hr, +0.04 Endurance/hr
+  /// - Yoga: +0.05 Agility/hr, +0.03 Focus/hr
+  /// - Serious Study: +0.06 Intelligence/hr, +0.04 Focus/hr
+  /// - Casual Study: +0.04 Intelligence/hr, +0.03 Charisma/hr
+  /// - Meditation: +0.05 Focus/hr
+  /// - Socializing: +0.05 Charisma/hr, +0.02 Focus/hr
+  /// - Sleep Tracking: +0.02 Endurance/hr
+  /// - Healthy Diet: +0.03 Endurance/hr
+  /// - Quit Bad Habit: +0.03 Focus (fixed amount)
+  /// 
+  /// @param activityType The type of activity being performed
+  /// @param durationMinutes The duration of the activity in minutes
+  /// @return Map of StatType to gain amount (can be empty for unknown activities)
+  /// @throws ArgumentError if durationMinutes is negative
+  /// 
+  /// Example:
+  /// ```dart
+  /// final gains = StatsService.calculateStatGains(ActivityType.workoutWeights, 90);
+  /// // Returns: {StatType.strength: 0.09, StatType.endurance: 0.06}
+  /// ```
   static Map<StatType, double> calculateStatGains(ActivityType activityType, int durationMinutes) {
     if (durationMinutes < 0) {
       throw ArgumentError('Duration must be non-negative');
@@ -153,8 +237,55 @@ class StatsService {
     return validatedStats;
   }
 
-  /// Comprehensive validation for infinite stats system
-  /// Validates stats for storage, calculation, and display safety
+  /// Comprehensive validation for the infinite stats system
+  /// 
+  /// This method performs thorough validation of stat values to ensure they are safe
+  /// for storage, calculation, and display in the infinite progression system. It
+  /// handles edge cases, validates against overflow conditions, and provides sanitized
+  /// values when issues are detected.
+  /// 
+  /// **Validation Checks:**
+  /// - **Invalid Values**: Detects NaN and infinite values
+  /// - **Floor Constraint**: Ensures no stat falls below 1.0 minimum
+  /// - **Overflow Protection**: Validates against extremely large values that could cause issues
+  /// - **Performance Impact**: Warns about values that might affect chart rendering performance
+  /// - **Data Integrity**: Ensures all required stats are present and valid
+  /// 
+  /// **Sanitization Process:**
+  /// - Invalid values (NaN, infinite) are replaced with safe defaults
+  /// - Values below 1.0 are clamped to the minimum floor
+  /// - Extremely large values are clamped to reasonable maximums
+  /// - Missing stats are filled with default values
+  /// 
+  /// **Return Value Types:**
+  /// - **Valid**: All stats pass validation without issues
+  /// - **Warning**: Stats are usable but have minor issues (e.g., very large values)
+  /// - **Invalid**: Critical issues detected, sanitized stats provided
+  /// 
+  /// **Performance Considerations:**
+  /// - Validates against values that could cause rendering performance issues
+  /// - Provides warnings for values above performance thresholds
+  /// - Suggests alternative display methods for extreme values
+  /// 
+  /// @param stats Map of StatType to stat values to validate
+  /// @return InfiniteStatsValidationResult with validation status and sanitized values
+  /// 
+  /// Example:
+  /// ```dart
+  /// final result = StatsService.validateInfiniteStats(userStats);
+  /// if (result.isValid) {
+  ///   // Use original stats
+  ///   useStats(stats);
+  /// } else if (result.hasWarning) {
+  ///   // Use sanitized stats with warning
+  ///   useStats(result.sanitizedStats);
+  ///   showWarning(result.message);
+  /// } else {
+  ///   // Critical issues, use sanitized stats
+  ///   useStats(result.sanitizedStats);
+  ///   showError(result.message);
+  /// }
+  /// ```
   static InfiniteStatsValidationResult validateInfiniteStats(Map<StatType, double> stats) {
     try {
       if (stats.isEmpty) {
@@ -175,7 +306,7 @@ class StatsService {
           sanitizedStats[statType] = 1.0;
         } else if (value.isInfinite) {
           issues.add('${statType.name} has infinite value');
-          sanitizedStats[statType] = _getMaxReasonableStatValue();
+          sanitizedStats[statType] = value.isNegative ? 1.0 : _getMaxReasonableStatValue();
         } else if (value < 1.0) {
           warnings.add('${statType.name} below minimum (${value.toStringAsFixed(2)})');
           sanitizedStats[statType] = 1.0;
@@ -273,7 +404,7 @@ class StatsService {
       // Check for extremely large values that might cause rendering issues
       if (maxValue > 100000) {
         return StatChartValidationResult.warning(
-          'Very large stat values detected (max: ${maxValue.toStringAsFixed(0)}). Chart may have performance issues.',
+          'Very large stat values detected (max: ${maxValue.toStringAsFixed(0)}). Chart rendering may have performance issues.',
           recommendedMaxY: _calculateSafeChartMaximum(maxValue),
         );
       }
@@ -348,8 +479,52 @@ class StatsService {
     return getStatGainRates(activityType);
   }
 
-  /// Calculate stat reversals for activity deletion
-  /// Uses stored statsGained data from ActivityLog, with fallback calculation for legacy activities
+  /// Calculate stat reversals for activity deletion with legacy data support
+  /// 
+  /// This method calculates the exact stat amounts that should be reversed when
+  /// deleting an activity. It prioritizes using stored stat gains from the activity
+  /// log for accuracy, but falls back to calculated gains for legacy activities
+  /// that were logged before stat gains were stored.
+  /// 
+  /// **Calculation Priority:**
+  /// 1. **Stored Gains (Preferred)**: Uses exact gains stored when activity was logged
+  /// 2. **Fallback Calculation**: Recalculates gains using original activity mapping
+  /// 
+  /// **Why Stored Gains Are Preferred:**
+  /// - Exact accuracy: Uses the precise values that were applied originally
+  /// - Handles edge cases: Accounts for any special conditions during original logging
+  /// - Future-proof: Works even if calculation rules change over time
+  /// - Data integrity: Ensures perfect reversal of original changes
+  /// 
+  /// **Legacy Data Handling:**
+  /// - Activities logged before stat storage was implemented lack stored gains
+  /// - Fallback calculation uses the same rules that were used originally
+  /// - Provides reasonable accuracy for older activities
+  /// - Enables deletion of all activities regardless of when they were logged
+  /// 
+  /// **Data Migration Considerations:**
+  /// - Legacy activities can be migrated to include stored gains
+  /// - Migration improves accuracy of future deletions
+  /// - Non-destructive: Original activity data is preserved
+  /// 
+  /// @param activityType The type of activity being reversed
+  /// @param durationMinutes The duration of the original activity in minutes
+  /// @param storedStatGains The stat gains stored in the activity log (null for legacy activities)
+  /// @return Map of StatType to reversal amount (positive values to be subtracted)
+  /// @throws ArgumentError if durationMinutes is negative
+  /// 
+  /// Example:
+  /// ```dart
+  /// // Using stored gains (preferred)
+  /// final reversals = StatsService.calculateStatReversals(
+  ///   ActivityType.workoutWeights, 60, storedGains
+  /// );
+  /// 
+  /// // Fallback for legacy activity
+  /// final reversals = StatsService.calculateStatReversals(
+  ///   ActivityType.workoutWeights, 60, null
+  /// );
+  /// ```
   static Map<StatType, double> calculateStatReversals(
     ActivityType activityType,
     int durationMinutes,
@@ -483,21 +658,21 @@ class StatsService {
   static void _logError(String method, String message) {
     final timestamp = DateTime.now().toIso8601String();
     final logMessage = '[$timestamp] ERROR StatsService.$method: $message';
-    print(logMessage); // In production, use proper logging framework
+    debugPrint(logMessage);
   }
 
   /// Log warning messages with context
   static void _logWarning(String method, String message) {
     final timestamp = DateTime.now().toIso8601String();
     final logMessage = '[$timestamp] WARNING StatsService.$method: $message';
-    print(logMessage); // In production, use proper logging framework
+    debugPrint(logMessage);
   }
 
   /// Log info messages with context
   static void _logInfo(String method, String message) {
     final timestamp = DateTime.now().toIso8601String();
     final logMessage = '[$timestamp] INFO StatsService.$method: $message';
-    print(logMessage); // In production, use proper logging framework
+    debugPrint(logMessage);
   }
 
   /// Validate stat values for export/import operations
@@ -914,7 +1089,7 @@ class ExportValidationResult {
   }
 }
 
-/// Result of edge case testing for infinite stats
+/// Result of edge case testing for infinite stats system
 class EdgeCaseTestResult {
   final Map<String, dynamic> testResults;
   final List<String> issues;
@@ -928,7 +1103,7 @@ class EdgeCaseTestResult {
 
   @override
   String toString() {
-    return 'EdgeCaseTestResult(passed: $passed, issues: ${issues.length}, results: ${testResults.length})';
+    return 'EdgeCaseTestResult(passed: $passed, issues: ${issues.length}, testResults: ${testResults.keys.length} tests)';
   }
 }
 
@@ -937,8 +1112,8 @@ class ChartRenderingValidationResult {
   final bool isValid;
   final bool hasWarning;
   final String? message;
-  final double? recommendedMaxY;
-  final double? scalingFactor;
+  final double recommendedMaxY;
+  final double scalingFactor;
   final List<String> warnings;
   final List<String> recommendations;
 
@@ -946,15 +1121,15 @@ class ChartRenderingValidationResult {
     required this.isValid,
     required this.hasWarning,
     this.message,
-    this.recommendedMaxY,
-    this.scalingFactor,
+    required this.recommendedMaxY,
+    required this.scalingFactor,
     this.warnings = const [],
     this.recommendations = const [],
   });
 
   factory ChartRenderingValidationResult.valid({
-    double? recommendedMaxY,
-    double? scalingFactor,
+    required double recommendedMaxY,
+    double scalingFactor = 1.0,
     List<String>? warnings,
     List<String>? recommendations,
   }) {
@@ -968,8 +1143,28 @@ class ChartRenderingValidationResult {
     );
   }
 
+  factory ChartRenderingValidationResult.warning(
+    String message, {
+    required double recommendedMaxY,
+    double scalingFactor = 1.0,
+    List<String>? warnings,
+    List<String>? recommendations,
+  }) {
+    return ChartRenderingValidationResult._(
+      isValid: true,
+      hasWarning: true,
+      message: message,
+      recommendedMaxY: recommendedMaxY,
+      scalingFactor: scalingFactor,
+      warnings: warnings ?? [],
+      recommendations: recommendations ?? [],
+    );
+  }
+
   factory ChartRenderingValidationResult.invalid(
     String message, {
+    double recommendedMaxY = 5.0,
+    double scalingFactor = 1.0,
     List<String>? warnings,
     List<String>? recommendations,
   }) {
@@ -977,6 +1172,8 @@ class ChartRenderingValidationResult {
       isValid: false,
       hasWarning: false,
       message: message,
+      recommendedMaxY: recommendedMaxY,
+      scalingFactor: scalingFactor,
       warnings: warnings ?? [],
       recommendations: recommendations ?? [],
     );

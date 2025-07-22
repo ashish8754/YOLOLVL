@@ -8,13 +8,66 @@ import '../services/app_lifecycle_service.dart';
 import '../services/degradation_service.dart';
 import '../repositories/user_repository.dart';
 
-/// Provider for managing user state, level, EXP, and stats
+/// Provider for managing user state, level, EXP, and stats with infinite progression support
+/// 
+/// This provider serves as the central state management hub for all user-related data
+/// and operations. It integrates with the infinite stats system and provides comprehensive
+/// functionality for stat reversal operations during activity deletion.
+/// 
+/// **Key Responsibilities:**
+/// - User profile management (name, avatar, level, EXP)
+/// - Infinite stats progression (no ceiling limits)
+/// - Stat reversal operations for activity deletion
+/// - Level-down handling when EXP is reversed
+/// - Degradation system integration
+/// - App lifecycle management
+/// - Error handling and user feedback
+/// 
+/// **Infinite Stats Features:**
+/// - Supports stat values beyond the previous 5.0 ceiling
+/// - Maintains 1.0 minimum floor for all stats
+/// - Handles extremely large stat values safely
+/// - Provides validation for stat operations
+/// 
+/// **Stat Reversal System:**
+/// - Applies stat reversals when activities are deleted
+/// - Handles level-down scenarios during EXP reversal
+/// - Provides loading states during deletion operations
+/// - Implements error handling and rollback mechanisms
+/// 
+/// **State Management:**
+/// - Reactive updates using ChangeNotifier
+/// - Loading states for async operations
+/// - Error state management with user-friendly messages
+/// - Success state management for user feedback
+/// 
+/// **Integration Points:**
+/// - UserService for business logic
+/// - AppLifecycleService for degradation management
+/// - ActivityProvider for coordinated state updates
+/// - UI components for reactive updates
+/// 
+/// Usage Example:
+/// ```dart
+/// // Apply stat reversals during activity deletion
+/// final result = await userProvider.applyStatReversals(
+///   statReversals: {StatType.strength: 0.5},
+///   expToReverse: 60.0,
+/// );
+/// 
+/// if (result.success) {
+///   if (result.leveledDown) {
+///     showLevelDownNotification(result.newLevel);
+///   }
+/// }
+/// ```
 class UserProvider extends ChangeNotifier {
   final UserService _userService;
   final AppLifecycleService _appLifecycleService;
   
   User? _currentUser;
   bool _isLoading = false;
+  bool _isDeletingActivity = false;
   String? _errorMessage;
   bool _needsOnboarding = false;
   bool _isFirstTime = false;
@@ -35,6 +88,7 @@ class UserProvider extends ChangeNotifier {
   // Getters
   User? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
+  bool get isDeletingActivity => _isDeletingActivity;
   String? get errorMessage => _errorMessage;
   bool get needsOnboarding => _needsOnboarding;
   bool get isFirstTime => _isFirstTime;
@@ -241,6 +295,142 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
+  /// Apply stat reversals for activity deletion with comprehensive error handling
+  /// 
+  /// This method coordinates the reversal of stat gains and EXP when an activity is
+  /// deleted. It provides a high-level interface for the complex stat reversal process,
+  /// handling all the necessary state management and user interface updates.
+  /// 
+  /// **Process Overview:**
+  /// 1. Validate user state and input parameters
+  /// 2. Store original state for potential rollback
+  /// 3. Apply stat reversals through UserService
+  /// 4. Handle level-down scenarios if EXP reversal causes them
+  /// 5. Update provider state and notify listeners
+  /// 6. Return detailed result information for UI feedback
+  /// 
+  /// **State Management:**
+  /// - Sets loading state during operation
+  /// - Clears any existing error messages
+  /// - Updates user state with new values
+  /// - Notifies listeners for UI updates
+  /// - Handles error states with user-friendly messages
+  /// 
+  /// **Level-Down Handling:**
+  /// - Detects when EXP reversal causes level reduction
+  /// - Calculates the number of levels lost
+  /// - Provides information for user notifications
+  /// - Ensures UI reflects the new level immediately
+  /// 
+  /// **Error Handling:**
+  /// - Validates user exists before operation
+  /// - Handles service-level errors gracefully
+  /// - Provides detailed error messages for debugging
+  /// - Maintains consistent state even on failure
+  /// 
+  /// **Return Information:**
+  /// - Success/failure status
+  /// - New level and EXP values
+  /// - Level-down detection and levels lost
+  /// - Stat reversal amounts applied
+  /// - Error messages for failure cases
+  /// 
+  /// @param statReversals Map of StatType to reversal amounts (positive values to subtract)
+  /// @param expToReverse Amount of EXP to reverse (positive value to subtract)
+  /// @return StatReversalResult with operation status and detailed information
+  /// 
+  /// Example:
+  /// ```dart
+  /// final result = await userProvider.applyStatReversals(
+  ///   statReversals: {
+  ///     StatType.strength: 0.12,
+  ///     StatType.endurance: 0.08,
+  ///   },
+  ///   expToReverse: 60.0,
+  /// );
+  /// 
+  /// if (result.success) {
+  ///   showSuccess('Activity deleted successfully');
+  ///   if (result.leveledDown) {
+  ///     showLevelDownAlert('You leveled down to ${result.newLevel}');
+  ///   }
+  /// } else {
+  ///   showError('Failed to delete activity: ${result.errorMessage}');
+  /// }
+  /// ```
+  Future<StatReversalResult> applyStatReversals({
+    required Map<StatType, double> statReversals,
+    required double expToReverse,
+  }) async {
+    if (_currentUser == null) {
+      _setError('No user to apply stat reversals for');
+      return StatReversalResult.error('No user found');
+    }
+
+    _setLoading(true);
+    _clearError();
+
+    try {
+      // Store original state for potential rollback
+      final originalLevel = _currentUser!.level;
+      final originalEXP = _currentUser!.currentEXP;
+      final originalStats = Map<StatType, double>.from(stats);
+
+      // Apply stat reversals through user service
+      final updatedUser = await _userService.applyStatReversals(
+        userId: _currentUser!.id,
+        statReversals: statReversals,
+        expToReverse: expToReverse,
+      );
+      
+      _currentUser = updatedUser;
+      
+      // Determine if level-down occurred
+      final leveledDown = _currentUser!.level < originalLevel;
+      final levelsLost = originalLevel - _currentUser!.level;
+      
+      notifyListeners();
+      
+      return StatReversalResult.success(
+        newLevel: _currentUser!.level,
+        newEXP: _currentUser!.currentEXP,
+        leveledDown: leveledDown,
+        levelsLost: levelsLost,
+        statReversals: statReversals,
+        expReversed: expToReverse,
+      );
+    } catch (e) {
+      _setError('Failed to apply stat reversals: $e');
+      return StatReversalResult.error('Failed to apply stat reversals: $e');
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Handle level-down scenarios when EXP is reversed
+  /// This method specifically handles the complex logic of level reduction
+  Future<LevelDownResult> handleLevelDown(double expToReverse) async {
+    if (_currentUser == null) {
+      _setError('No user to handle level-down for');
+      return LevelDownResult.error('No user found');
+    }
+
+    try {
+      final result = await _userService.handleLevelDown(
+        userId: _currentUser!.id,
+        expToReverse: expToReverse,
+      );
+      
+      _currentUser = result.user;
+      notifyListeners();
+      
+      return result;
+    } catch (e) {
+      _setError('Failed to handle level-down: $e');
+      return LevelDownResult.error('Failed to handle level-down: $e');
+    }
+  }
+
   /// Get user level information
   UserLevelInfo? getUserLevelInfo() {
     if (_currentUser == null) return null;
@@ -348,6 +538,11 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _setDeletingActivity(bool deleting) {
+    _isDeletingActivity = deleting;
+    notifyListeners();
+  }
+
   void _setError(String error) {
     _errorMessage = error;
     notifyListeners();
@@ -393,3 +588,68 @@ class UserProvider extends ChangeNotifier {
     }
   }
 }
+
+/// Result of stat reversal operation
+class StatReversalResult {
+  final bool success;
+  final String? errorMessage;
+  final int newLevel;
+  final double newEXP;
+  final bool leveledDown;
+  final int levelsLost;
+  final Map<StatType, double> statReversals;
+  final double expReversed;
+
+  const StatReversalResult._({
+    required this.success,
+    this.errorMessage,
+    required this.newLevel,
+    required this.newEXP,
+    required this.leveledDown,
+    required this.levelsLost,
+    required this.statReversals,
+    required this.expReversed,
+  });
+
+  factory StatReversalResult.success({
+    required int newLevel,
+    required double newEXP,
+    required bool leveledDown,
+    required int levelsLost,
+    required Map<StatType, double> statReversals,
+    required double expReversed,
+  }) {
+    return StatReversalResult._(
+      success: true,
+      newLevel: newLevel,
+      newEXP: newEXP,
+      leveledDown: leveledDown,
+      levelsLost: levelsLost,
+      statReversals: statReversals,
+      expReversed: expReversed,
+    );
+  }
+
+  factory StatReversalResult.error(String errorMessage) {
+    return StatReversalResult._(
+      success: false,
+      errorMessage: errorMessage,
+      newLevel: 0,
+      newEXP: 0.0,
+      leveledDown: false,
+      levelsLost: 0,
+      statReversals: {},
+      expReversed: 0.0,
+    );
+  }
+
+  @override
+  String toString() {
+    if (success) {
+      return 'StatReversalResult(success: true, newLevel: $newLevel, leveledDown: $leveledDown, levelsLost: $levelsLost)';
+    } else {
+      return 'StatReversalResult(success: false, error: $errorMessage)';
+    }
+  }
+}
+

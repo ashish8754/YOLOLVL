@@ -281,14 +281,14 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
       );
     }
     
-    final success = await activityProvider.deleteActivity(activityId);
+    final result = await activityProvider.deleteActivity(activityId);
     
     // Clear the loading snackbar
     if (mounted) {
       ScaffoldMessenger.of(context).clearSnackBars();
     }
     
-    if (success && mounted) {
+    if (result.success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(

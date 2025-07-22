@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/user.dart';
@@ -10,6 +11,7 @@ import '../repositories/user_repository.dart';
 import '../repositories/activity_repository.dart';
 import '../repositories/settings_repository.dart';
 import 'stats_service.dart';
+import '../utils/infinite_stats_validator.dart';
 
 /// Service for handling data backup and restore operations
 class BackupService {
@@ -76,8 +78,8 @@ class BackupService {
       }
     }
 
-    // Use enhanced validation for infinite stats system
-    final validationResult = StatsService.validateStatsForExport(statsMap);
+    // Use dedicated InfiniteStatsValidator for export validation
+    final validationResult = InfiniteStatsValidator.validateStatsForExport(statsMap);
     
     if (!validationResult.isValid) {
       throw BackupException('Cannot export user stats: ${validationResult.message}');
@@ -87,12 +89,32 @@ class BackupService {
       _logWarning('_validateUserDataForExport', 'Export validation warnings: ${validationResult.warnings.join(', ')}');
     }
 
-    // Check EXP and level
+    // Additional validation for extremely large values that might cause issues
+    for (final entry in statsMap.entries) {
+      final statType = entry.key;
+      final value = entry.value;
+      
+      // Check for values that might cause JSON serialization issues
+      if (value > 1e15) { // 1 quadrillion - beyond reasonable gameplay
+        throw BackupException('Cannot export: stat ${statType.name} is too large for safe export: $value');
+      }
+      
+      // Check for precision loss in JSON serialization
+      if (value.toString().length > 15) {
+        _logWarning('_validateUserDataForExport', 'Stat ${statType.name} may lose precision during export: $value');
+      }
+    }
+
+    // Check EXP and level with enhanced validation
     if (user.currentEXP.isNaN || user.currentEXP.isInfinite) {
       throw BackupException('Cannot export: user has invalid EXP value: ${user.currentEXP}');
     }
+    
+    if (user.currentEXP > 1e15) {
+      throw BackupException('Cannot export: user EXP is too large for safe export: ${user.currentEXP}');
+    }
 
-    if (user.level < 1) {
+    if (user.level < 1 || user.level > 1000000) {
       throw BackupException('Cannot export: user has invalid level: ${user.level}');
     }
   }
@@ -331,7 +353,7 @@ class BackupService {
       );
     } catch (e) {
       // Don't throw for automatic backups, just log
-      print('Automatic backup failed: $e');
+      debugPrint('BackupService: Automatic backup failed: $e');
       return null;
     }
   }
@@ -501,7 +523,7 @@ class BackupService {
       }
     } catch (e) {
       // Don't throw for cleanup operations
-      print('Backup cleanup failed: $e');
+      debugPrint('BackupService: Backup cleanup failed: $e');
     }
   }
 
@@ -599,21 +621,21 @@ class BackupService {
   void _logError(String method, String message) {
     final timestamp = DateTime.now().toIso8601String();
     final logMessage = '[$timestamp] ERROR BackupService.$method: $message';
-    print(logMessage); // In production, use proper logging framework
+    debugPrint(logMessage);
   }
 
   /// Log warning messages with context
   void _logWarning(String method, String message) {
     final timestamp = DateTime.now().toIso8601String();
     final logMessage = '[$timestamp] WARNING BackupService.$method: $message';
-    print(logMessage); // In production, use proper logging framework
+    debugPrint(logMessage);
   }
 
   /// Log info messages with context
   void _logInfo(String method, String message) {
     final timestamp = DateTime.now().toIso8601String();
     final logMessage = '[$timestamp] INFO BackupService.$method: $message';
-    print(logMessage); // In production, use proper logging framework
+    debugPrint(logMessage);
   }
 }
 
@@ -716,21 +738,21 @@ class BackupFileInfo {
   void _logError(String method, String message) {
     final timestamp = DateTime.now().toIso8601String();
     final logMessage = '[$timestamp] ERROR BackupService.$method: $message';
-    print(logMessage); // In production, use proper logging framework
+    debugPrint(logMessage);
   }
 
   /// Log warning messages with context
   void _logWarning(String method, String message) {
     final timestamp = DateTime.now().toIso8601String();
     final logMessage = '[$timestamp] WARNING BackupService.$method: $message';
-    print(logMessage); // In production, use proper logging framework
+    debugPrint(logMessage);
   }
 
   /// Log info messages with context
   void _logInfo(String method, String message) {
     final timestamp = DateTime.now().toIso8601String();
     final logMessage = '[$timestamp] INFO BackupService.$method: $message';
-    print(logMessage); // In production, use proper logging framework
+    debugPrint(logMessage);
   }
 }
 

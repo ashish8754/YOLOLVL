@@ -295,6 +295,83 @@ class UserService {
       throw UserServiceException('Failed to get user stats summary: $e');
     }
   }
+
+  /// Apply stat reversals for activity deletion
+  /// This method handles the reversal of stat gains and EXP when an activity is deleted
+  Future<User> applyStatReversals({
+    required String userId,
+    required Map<StatType, double> statReversals,
+    required double expToReverse,
+  }) async {
+    try {
+      final user = _userRepository.findByKey(userId);
+      if (user == null) {
+        throw UserServiceException('User not found');
+      }
+
+      // Apply stat reversals with floor constraint of 1.0
+      for (final entry in statReversals.entries) {
+        final currentValue = user.getStat(entry.key);
+        final newValue = (currentValue - entry.value).clamp(1.0, double.infinity);
+        user.setStat(entry.key, newValue);
+      }
+
+      // Handle EXP reversal and potential level-down
+      final levelDownResult = EXPService.handleEXPReversal(user, expToReverse);
+      
+      // Update user with new level and EXP
+      user.level = levelDownResult.level;
+      user.currentEXP = levelDownResult.currentEXP;
+
+      // Save updated user
+      await _userRepository.updateUser(user);
+      
+      return user;
+    } catch (e) {
+      throw UserServiceException('Failed to apply stat reversals: $e');
+    }
+  }
+
+  /// Handle level-down scenarios when EXP is reversed
+  /// This method specifically handles the complex logic of level reduction
+  Future<LevelDownResult> handleLevelDown({
+    required String userId,
+    required double expToReverse,
+  }) async {
+    try {
+      final user = _userRepository.findByKey(userId);
+      if (user == null) {
+        throw UserServiceException('User not found');
+      }
+
+      final previousLevel = user.level;
+      final previousEXP = user.currentEXP;
+
+      // Calculate level-down using EXP service
+      final levelDownResult = EXPService.handleEXPReversal(user, expToReverse);
+      
+      // Update user with new values
+      user.level = levelDownResult.level;
+      user.currentEXP = levelDownResult.currentEXP;
+
+      // Save updated user
+      await _userRepository.updateUser(user);
+
+      final levelsLost = previousLevel - user.level;
+
+      return LevelDownResult.success(
+        user: user,
+        previousLevel: previousLevel,
+        newLevel: user.level,
+        levelsLost: levelsLost,
+        previousEXP: previousEXP,
+        newEXP: user.currentEXP,
+        expReversed: expToReverse,
+      );
+    } catch (e) {
+      throw UserServiceException('Failed to handle level-down: $e');
+    }
+  }
 }
 
 /// Result of app initialization
@@ -382,6 +459,77 @@ class UserStatsSummary {
   @override
   String toString() {
     return 'UserStatsSummary(totalStats: $totalStatPoints, avgStat: ${averageStatValue.toStringAsFixed(2)}, days: $daysSinceCreation)';
+  }
+}
+
+/// Result of level-down operation
+class LevelDownResult {
+  final bool success;
+  final String? errorMessage;
+  final User user;
+  final int previousLevel;
+  final int newLevel;
+  final int levelsLost;
+  final double previousEXP;
+  final double newEXP;
+  final double expReversed;
+
+  const LevelDownResult._({
+    required this.success,
+    this.errorMessage,
+    required this.user,
+    required this.previousLevel,
+    required this.newLevel,
+    required this.levelsLost,
+    required this.previousEXP,
+    required this.newEXP,
+    required this.expReversed,
+  });
+
+  factory LevelDownResult.success({
+    required User user,
+    required int previousLevel,
+    required int newLevel,
+    required int levelsLost,
+    required double previousEXP,
+    required double newEXP,
+    required double expReversed,
+  }) {
+    return LevelDownResult._(
+      success: true,
+      user: user,
+      previousLevel: previousLevel,
+      newLevel: newLevel,
+      levelsLost: levelsLost,
+      previousEXP: previousEXP,
+      newEXP: newEXP,
+      expReversed: expReversed,
+    );
+  }
+
+  factory LevelDownResult.error(String errorMessage) {
+    // Create a dummy user for error case
+    final dummyUser = User.create(id: '', name: '');
+    return LevelDownResult._(
+      success: false,
+      errorMessage: errorMessage,
+      user: dummyUser,
+      previousLevel: 0,
+      newLevel: 0,
+      levelsLost: 0,
+      previousEXP: 0.0,
+      newEXP: 0.0,
+      expReversed: 0.0,
+    );
+  }
+
+  @override
+  String toString() {
+    if (success) {
+      return 'LevelDownResult(success: true, previousLevel: $previousLevel, newLevel: $newLevel, levelsLost: $levelsLost)';
+    } else {
+      return 'LevelDownResult(success: false, error: $errorMessage)';
+    }
   }
 }
 

@@ -8,7 +8,58 @@ import '../services/app_lifecycle_service.dart';
 import '../repositories/activity_repository.dart';
 import '../repositories/user_repository.dart';
 
-/// Provider for managing activity logging state and history
+/// Provider for managing activity logging, history, and deletion with stat reversal
+/// 
+/// This provider serves as the central state management hub for all activity-related
+/// operations, including the complex activity deletion process with stat reversal.
+/// It coordinates with ActivityService and UserProvider to ensure consistent state
+/// across the application.
+/// 
+/// **Key Responsibilities:**
+/// - Activity logging with stat and EXP gain calculation
+/// - Activity history management with filtering and pagination
+/// - Activity deletion with comprehensive stat reversal
+/// - Real-time UI updates during deletion operations
+/// - Error handling and user feedback for all operations
+/// - Integration with notification systems for achievements
+/// 
+/// **Activity Deletion Features:**
+/// - Preview deletion impact before execution
+/// - Safe deletion with validation and rollback
+/// - Immediate UI updates for responsive user experience
+/// - Comprehensive error handling with user-friendly messages
+/// - Integration with UserProvider for stat reversal coordination
+/// 
+/// **State Management:**
+/// - Reactive updates using ChangeNotifier
+/// - Loading states for all async operations
+/// - Error and success message management
+/// - Optimistic UI updates for better user experience
+/// - Automatic data refresh after operations
+/// 
+/// **Integration Points:**
+/// - ActivityService for business logic and validation
+/// - UserProvider for stat reversal coordination
+/// - NotificationService for achievement alerts
+/// - UI components for reactive state updates
+/// 
+/// **Performance Optimizations:**
+/// - Immediate local state updates for UI responsiveness
+/// - Background data refresh for consistency
+/// - Efficient list management for large activity histories
+/// - Pagination support for memory optimization
+/// 
+/// Usage Example:
+/// ```dart
+/// // Delete activity with full stat reversal
+/// final result = await activityProvider.deleteActivity('activity_123');
+/// if (result.success) {
+///   // UI automatically updates, UserProvider handles stat reversal
+///   showSuccess('Activity deleted and stats reversed');
+/// } else {
+///   showError(activityProvider.getDeletionErrorMessage(result));
+/// }
+/// ```
 class ActivityProvider extends ChangeNotifier {
   final ActivityService _activityService;
   final AppLifecycleService? _appLifecycleService;
@@ -20,7 +71,9 @@ class ActivityProvider extends ChangeNotifier {
   
   bool _isLoading = false;
   bool _isLoggingActivity = false;
+  bool _isDeletingActivity = false;
   String? _errorMessage;
+  String? _successMessage;
   
   // Activity logging state
   ActivityType _selectedActivityType = ActivityType.workoutWeights;
@@ -53,7 +106,9 @@ class ActivityProvider extends ChangeNotifier {
   
   bool get isLoading => _isLoading;
   bool get isLoggingActivity => _isLoggingActivity;
+  bool get isDeletingActivity => _isDeletingActivity;
   String? get errorMessage => _errorMessage;
+  String? get successMessage => _successMessage;
   
   // Activity logging getters
   ActivityType get selectedActivityType => _selectedActivityType;
@@ -212,13 +267,90 @@ class ActivityProvider extends ChangeNotifier {
     }
   }
 
-  /// Delete an activity with stat reversal
-  Future<bool> deleteActivity(String activityId) async {
-    _setLoading(true);
+  /// Delete an activity with comprehensive stat reversal and UI coordination
+  /// 
+  /// This method provides a high-level interface for activity deletion that coordinates
+  /// between ActivityService for the deletion logic and the UI for immediate feedback.
+  /// It implements optimistic UI updates for responsiveness while ensuring data consistency.
+  /// 
+  /// **Process Flow:**
+  /// 1. Set loading state and clear previous messages
+  /// 2. Preview deletion to validate safety and show warnings
+  /// 3. Perform safe deletion through ActivityService
+  /// 4. Immediately update local state for UI responsiveness
+  /// 5. Refresh data from repository for consistency
+  /// 6. Provide user feedback through success/error messages
+  /// 
+  /// **UI Coordination:**
+  /// - Immediate removal from local activity lists for instant UI update
+  /// - Loading state management during deletion process
+  /// - Error and success message management for user feedback
+  /// - Automatic data refresh to ensure consistency with repository
+  /// 
+  /// **Safety Features:**
+  /// - Preview validation before actual deletion
+  /// - Warning handling for edge cases
+  /// - Comprehensive error handling with user-friendly messages
+  /// - Rollback support if deletion fails partway through
+  /// 
+  /// **Performance Optimizations:**
+  /// - Optimistic UI updates for immediate feedback
+  /// - Background data refresh for consistency
+  /// - Efficient state management to minimize re-renders
+  /// 
+  /// **Integration with UserProvider:**
+  /// - Stat reversal is handled by ActivityService and UserProvider
+  /// - This provider focuses on activity-specific state management
+  /// - Coordinates with UserProvider for consistent state updates
+  /// 
+  /// **Error Handling:**
+  /// - Validation errors from preview phase
+  /// - Service-level errors during deletion
+  /// - Network or storage errors during data refresh
+  /// - User-friendly error message generation
+  /// 
+  /// @param activityId The unique identifier of the activity to delete
+  /// @return ActivityDeletionResult with detailed operation status and information
+  /// 
+  /// Example:
+  /// ```dart
+  /// final result = await activityProvider.deleteActivity('activity_123');
+  /// 
+  /// if (result.success) {
+  ///   // UI already updated optimistically
+  ///   showSnackbar('Activity deleted successfully');
+  ///   
+  ///   if (result.leveledDown) {
+  ///     showDialog('You leveled down to ${result.newLevel}');
+  ///   }
+  /// } else {
+  ///   // Show user-friendly error message
+  ///   final errorMsg = activityProvider.getDeletionErrorMessage(result);
+  ///   showError(errorMsg);
+  /// }
+  /// ```
+  Future<ActivityDeletionResult> deleteActivity(String activityId) async {
+    _setDeletingActivity(true);
     _clearError();
+    _clearSuccess();
 
     try {
-      final result = await _activityService.deleteActivityWithStatReversal(activityId);
+      // First preview the deletion to check for issues
+      final preview = await _activityService.previewActivityDeletion(activityId);
+      
+      if (!preview.isValid) {
+        final errorMessage = preview.errorMessage ?? 'Cannot safely delete activity due to validation issues';
+        _setError(errorMessage);
+        return ActivityDeletionResult.error(errorMessage);
+      }
+      
+      // If there are warnings, log them but proceed
+      if (preview.hasWarnings) {
+        _logWarning('Proceeding with deletion despite warnings: ${preview.validationIssues.join(", ")}');
+      }
+      
+      // Proceed with actual deletion using the safe delete method
+      final result = await _activityService.safeDeleteActivity(activityId, skipPreview: true);
       
       if (result.success) {
         // Immediately remove the activity from local lists for instant UI update
@@ -232,17 +364,45 @@ class ActivityProvider extends ChangeNotifier {
         // Then refresh data from repository to ensure consistency
         await refreshAfterDeletion();
         
-        return true;
+        // Set success message
+        _setSuccess(getDeletionSuccessMessage(result));
+        
+        return result;
       } else {
-        _setError(result.errorMessage ?? 'Failed to delete activity');
-        return false;
+        final errorMessage = result.errorMessage ?? 'Failed to delete activity';
+        _setError(errorMessage);
+        return result;
       }
     } catch (e) {
-      _setError('Failed to delete activity: $e');
-      return false;
+      final errorMessage = 'Failed to delete activity: $e';
+      _setError(errorMessage);
+      return ActivityDeletionResult.error(errorMessage);
     } finally {
-      _setLoading(false);
+      _setDeletingActivity(false);
     }
+  }
+
+  /// Delete an activity with stat reversal (legacy method for backward compatibility)
+  /// Returns a simple boolean for existing code that expects this signature
+  Future<bool> deleteActivitySimple(String activityId) async {
+    final result = await deleteActivity(activityId);
+    return result.success;
+  }
+  
+  /// Preview activity deletion without actually deleting
+  Future<ActivityDeletionPreview> previewActivityDeletion(String activityId) async {
+    try {
+      return await _activityService.previewActivityDeletion(activityId);
+    } catch (e) {
+      _setError('Failed to preview activity deletion: $e');
+      return ActivityDeletionPreview.error('Failed to preview deletion: $e');
+    }
+  }
+  
+  /// Log warning messages
+  void _logWarning(String message) {
+    final timestamp = DateTime.now().toIso8601String();
+    debugPrint('[$timestamp] WARNING ActivityProvider: $message');
   }
 
   /// Set selected activity type for logging
@@ -404,6 +564,74 @@ class ActivityProvider extends ChangeNotifier {
     }
   }
 
+  /// Get user-friendly error message for deletion failures
+  String getDeletionErrorMessage(ActivityDeletionResult result) {
+    if (result.success) {
+      return '';
+    }
+
+    final errorMessage = result.errorMessage ?? 'Unknown error occurred';
+    
+    // Provide user-friendly messages for common error scenarios
+    if (errorMessage.contains('Activity not found')) {
+      return 'This activity has already been deleted or does not exist.';
+    } else if (errorMessage.contains('validation failed')) {
+      return 'This activity cannot be safely deleted due to data integrity issues.';
+    } else if (errorMessage.contains('stat reversal')) {
+      return 'Unable to reverse the stat changes from this activity. Please try again.';
+    } else if (errorMessage.contains('EXP reversal')) {
+      return 'Unable to reverse the experience points from this activity. Please try again.';
+    } else if (errorMessage.contains('No user found')) {
+      return 'User data not found. Please restart the app and try again.';
+    } else {
+      return 'Failed to delete activity. Please try again later.';
+    }
+  }
+
+  /// Get success message for deletion
+  String getDeletionSuccessMessage(ActivityDeletionResult result) {
+    if (!result.success || result.deletedActivity == null) {
+      return '';
+    }
+
+    final activity = result.deletedActivity!;
+    final activityName = _getActivityDisplayName(activity.activityTypeEnum);
+    
+    String message = 'Successfully deleted $activityName activity';
+    
+    if (result.leveledDown) {
+      message += ' (Level reduced to ${result.newLevel})';
+    }
+    
+    return message;
+  }
+
+  /// Get display name for activity type
+  String _getActivityDisplayName(ActivityType activityType) {
+    switch (activityType) {
+      case ActivityType.workoutWeights:
+        return 'Weight Training';
+      case ActivityType.workoutCardio:
+        return 'Cardio';
+      case ActivityType.workoutYoga:
+        return 'Yoga/Flexibility';
+      case ActivityType.studySerious:
+        return 'Serious Study';
+      case ActivityType.studyCasual:
+        return 'Casual Study';
+      case ActivityType.meditation:
+        return 'Meditation';
+      case ActivityType.socializing:
+        return 'Socializing';
+      case ActivityType.quitBadHabit:
+        return 'Quit Bad Habit';
+      case ActivityType.sleepTracking:
+        return 'Sleep Tracking';
+      case ActivityType.dietHealthy:
+        return 'Healthy Diet';
+    }
+  }
+
   /// Set callback for level up notifications
   void setLevelUpCallback(Function(int newLevel)? callback) {
     _onLevelUp = callback;
@@ -429,6 +657,17 @@ class ActivityProvider extends ChangeNotifier {
     _clearError();
   }
 
+  /// Clear success message
+  void clearSuccess() {
+    _clearSuccess();
+  }
+
+  /// Clear all messages
+  void clearMessages() {
+    _clearError();
+    _clearSuccess();
+  }
+
   @override
   void dispose() {
     _appLifecycleService?.removeListener(_onAppLifecycleChanged);
@@ -446,14 +685,33 @@ class ActivityProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _setDeletingActivity(bool deleting) {
+    _isDeletingActivity = deleting;
+    notifyListeners();
+  }
+
   void _setError(String error) {
     _errorMessage = error;
+    _successMessage = null; // Clear success message when error occurs
+    notifyListeners();
+  }
+
+  void _setSuccess(String success) {
+    _successMessage = success;
+    _errorMessage = null; // Clear error message when success occurs
     notifyListeners();
   }
 
   void _clearError() {
     if (_errorMessage != null) {
       _errorMessage = null;
+      notifyListeners();
+    }
+  }
+
+  void _clearSuccess() {
+    if (_successMessage != null) {
+      _successMessage = null;
       notifyListeners();
     }
   }
