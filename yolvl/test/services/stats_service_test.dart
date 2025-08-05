@@ -5,11 +5,11 @@ import 'package:yolvl/models/enums.dart';
 void main() {
   group('StatsService', () {
     group('calculateStatGains', () {
-      test('should calculate correct gains for Workout - Weights', () {
-        final gains = StatsService.calculateStatGains(ActivityType.workoutWeights, 60);
+      test('should calculate correct gains for Workout - Upper Body', () {
+        final gains = StatsService.calculateStatGains(ActivityType.workoutUpperBody, 60);
         
         expect(gains[StatType.strength], equals(0.06));
-        expect(gains[StatType.endurance], equals(0.04));
+        expect(gains[StatType.endurance], equals(0.03));
         expect(gains.length, equals(2));
       });
 
@@ -88,18 +88,18 @@ void main() {
 
       test('should scale gains proportionally with duration', () {
         // Test 30 minutes (0.5 hours)
-        final gains30 = StatsService.calculateStatGains(ActivityType.workoutWeights, 30);
+        final gains30 = StatsService.calculateStatGains(ActivityType.workoutUpperBody, 30);
         expect(gains30[StatType.strength], equals(0.03)); // 0.06 * 0.5
-        expect(gains30[StatType.endurance], equals(0.02)); // 0.04 * 0.5
+        expect(gains30[StatType.endurance], equals(0.015)); // 0.03 * 0.5
 
         // Test 120 minutes (2 hours)
-        final gains120 = StatsService.calculateStatGains(ActivityType.workoutWeights, 120);
+        final gains120 = StatsService.calculateStatGains(ActivityType.workoutUpperBody, 120);
         expect(gains120[StatType.strength], equals(0.12)); // 0.06 * 2
-        expect(gains120[StatType.endurance], equals(0.08)); // 0.04 * 2
+        expect(gains120[StatType.endurance], equals(0.06)); // 0.03 * 2
       });
 
       test('should handle zero duration', () {
-        final gains = StatsService.calculateStatGains(ActivityType.workoutWeights, 0);
+        final gains = StatsService.calculateStatGains(ActivityType.workoutUpperBody, 0);
         
         expect(gains[StatType.strength], equals(0.0));
         expect(gains[StatType.endurance], equals(0.0));
@@ -113,7 +113,7 @@ void main() {
 
       test('should throw error for negative duration', () {
         expect(
-          () => StatsService.calculateStatGains(ActivityType.workoutWeights, -1),
+          () => StatsService.calculateStatGains(ActivityType.workoutUpperBody, -1),
           throwsArgumentError,
         );
       });
@@ -207,8 +207,8 @@ void main() {
     });
 
     group('getAffectedStats', () {
-      test('should return correct affected stats for workout weights', () {
-        final affected = StatsService.getAffectedStats(ActivityType.workoutWeights);
+      test('should return correct affected stats for workout upper body', () {
+        final affected = StatsService.getAffectedStats(ActivityType.workoutUpperBody);
         
         expect(affected, containsAll([StatType.strength, StatType.endurance]));
         expect(affected.length, equals(2));
@@ -230,9 +230,9 @@ void main() {
     });
 
     group('getPrimaryStat', () {
-      test('should return primary stat for workout weights', () {
-        final primary = StatsService.getPrimaryStat(ActivityType.workoutWeights);
-        expect(primary, equals(StatType.strength)); // 0.06 > 0.04
+      test('should return primary stat for workout upper body', () {
+        final primary = StatsService.getPrimaryStat(ActivityType.workoutUpperBody);
+        expect(primary, equals(StatType.strength)); // 0.06 > 0.03
       });
 
       test('should return primary stat for study serious', () {
@@ -255,7 +255,7 @@ void main() {
       test('should calculate total gains from multiple activities', () {
         final activities = [
           ActivityLogEntry(
-            activityType: ActivityType.workoutWeights,
+            activityType: ActivityType.workoutUpperBody,
             durationMinutes: 60,
             timestamp: DateTime.now(),
           ),
@@ -268,8 +268,8 @@ void main() {
 
         final totalGains = StatsService.calculateTotalStatGains(activities);
 
-        expect(totalGains[StatType.strength], equals(0.06)); // From weights
-        expect(totalGains[StatType.endurance], equals(0.04)); // From weights
+        expect(totalGains[StatType.strength], equals(0.06)); // From upper body
+        expect(totalGains[StatType.endurance], equals(0.03)); // From upper body
         expect(totalGains[StatType.intelligence], equals(0.03)); // From study (30 min)
         expect(totalGains[StatType.focus], equals(0.02)); // From study (30 min)
       });
@@ -364,21 +364,21 @@ void main() {
 
     group('getStatGainRates', () {
       test('should return hourly rates for all activities', () {
-        final rates = StatsService.getStatGainRates(ActivityType.workoutWeights);
+        final rates = StatsService.getStatGainRates(ActivityType.workoutUpperBody);
         
         expect(rates[StatType.strength], equals(0.06));
-        expect(rates[StatType.endurance], equals(0.04));
+        expect(rates[StatType.endurance], equals(0.03));
       });
     });
 
     group('calculateExpectedGains', () {
       test('should create preview with correct information', () {
-        final preview = StatsService.calculateExpectedGains(ActivityType.workoutWeights, 60);
+        final preview = StatsService.calculateExpectedGains(ActivityType.workoutUpperBody, 60);
 
-        expect(preview.activityType, equals(ActivityType.workoutWeights));
+        expect(preview.activityType, equals(ActivityType.workoutUpperBody));
         expect(preview.durationMinutes, equals(60));
         expect(preview.statGains[StatType.strength], equals(0.06));
-        expect(preview.statGains[StatType.endurance], equals(0.04));
+        expect(preview.statGains[StatType.endurance], equals(0.03));
         expect(preview.affectedStats, containsAll([StatType.strength, StatType.endurance]));
         expect(preview.primaryStat, equals(StatType.strength));
       });
@@ -394,10 +394,10 @@ void main() {
 
     group('StatGainPreview', () {
       test('should format gain text correctly', () {
-        final preview = StatsService.calculateExpectedGains(ActivityType.workoutWeights, 60);
+        final preview = StatsService.calculateExpectedGains(ActivityType.workoutUpperBody, 60);
 
         expect(preview.getGainText(StatType.strength), equals('+0.06'));
-        expect(preview.getGainText(StatType.endurance), equals('+0.04'));
+        expect(preview.getGainText(StatType.endurance), equals('+0.03'));
         expect(preview.getGainText(StatType.agility), equals('')); // Not affected
       });
 

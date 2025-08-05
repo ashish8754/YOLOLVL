@@ -12,7 +12,7 @@ void main() {
       test('should handle stat reversal for all activity types correctly', () {
         final testCases = [
           {
-            'activity': ActivityType.workoutWeights,
+            'activity': ActivityType.workoutUpperBody,
             'duration': 120, // 2 hours
             'expectedStats': {
               StatType.strength: 0.12, // 0.06 * 2
@@ -82,7 +82,7 @@ void main() {
       test('should handle edge cases in stat reversal calculations', () {
         // Test with very small durations
         final smallDurationReversals = StatsService.calculateStatReversals(
-          ActivityType.workoutWeights,
+          ActivityType.workoutUpperBody,
           1, // 1 minute
           null,
         );
@@ -453,7 +453,7 @@ void main() {
         // Activity to delete: 2-hour weight training session
         final activityToDelete = ActivityLog.create(
           id: 'activity-1',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 120,
           statGains: {
             StatType.strength: 0.12,

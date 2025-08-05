@@ -61,7 +61,7 @@ void main() {
       // Arrange - create an activity log with known stat gains
       final activityLog = ActivityLog.create(
         id: 'test_activity',
-        activityType: ActivityType.workoutWeights,
+        activityType: ActivityType.workoutUpperBody,
         durationMinutes: 120, // 2 hours
         statGains: {
           StatType.strength: 0.12, // 0.06 * 2 hours
@@ -147,7 +147,7 @@ void main() {
 
       final activityLog = ActivityLog.create(
         id: 'test_activity_floor',
-        activityType: ActivityType.workoutWeights,
+        activityType: ActivityType.workoutUpperBody,
         durationMinutes: 120,
         statGains: {
           StatType.strength: 0.1, // Would result in 0.95, should be clamped to 1.0

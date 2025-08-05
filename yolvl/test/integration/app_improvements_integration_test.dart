@@ -52,7 +52,7 @@ void main() {
         // Create an activity with known stat gains
         final activity = ActivityLog.create(
           id: 'test_activity',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 60,
           statGains: {
             StatType.strength: 0.06,
@@ -79,7 +79,7 @@ void main() {
 
         // Test stat reversal calculation
         final reversals = StatsService.calculateStatReversals(
-          ActivityType.workoutWeights,
+          ActivityType.workoutUpperBody,
           60,
           activity.statGainsMap,
         );
@@ -109,7 +109,7 @@ void main() {
 
         final activity = ActivityLog.create(
           id: 'test_activity',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 120, // Large EXP gain
           statGains: {StatType.strength: 0.12},
           expGained: 120,
@@ -128,7 +128,7 @@ void main() {
 
         final activity = ActivityLog.create(
           id: 'test_activity',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 60,
           statGains: {StatType.strength: 0.06}, // Would push below 1.0
           expGained: 60,
@@ -136,7 +136,7 @@ void main() {
         );
 
         final reversals = StatsService.calculateStatReversals(
-          ActivityType.workoutWeights,
+          ActivityType.workoutUpperBody,
           60,
           activity.statGainsMap,
         );
@@ -161,7 +161,7 @@ void main() {
         expect(validationResult.isValid, true);
 
         // Test stat gains calculation (should work without ceiling)
-        final gains = StatsService.calculateStatGains(ActivityType.workoutWeights, 60);
+        final gains = StatsService.calculateStatGains(ActivityType.workoutUpperBody, 60);
         expect(gains[StatType.strength], 0.06);
         expect(gains[StatType.endurance], 0.04);
 
@@ -492,7 +492,7 @@ void main() {
         // Create activity without stored stat gains (legacy format)
         final legacyActivity = ActivityLog.create(
           id: 'legacy_activity',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 60,
           statGains: {}, // Empty - simulates legacy data
           expGained: 60,
@@ -501,7 +501,7 @@ void main() {
 
         // Should calculate reversals using fallback method
         final reversals = StatsService.calculateStatReversals(
-          ActivityType.workoutWeights,
+          ActivityType.workoutUpperBody,
           60,
           null, // No stored gains
         );

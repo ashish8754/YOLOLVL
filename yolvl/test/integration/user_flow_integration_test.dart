@@ -62,7 +62,7 @@ void main() {
 
       // Log multiple activities to trigger level up
       for (int i = 0; i < 20; i++) {
-        await _logActivity(tester, ActivityType.workoutWeights, 60);
+        await _logActivity(tester, ActivityType.workoutUpperBody, 60);
         await tester.pumpAndSettle();
       }
 
@@ -109,7 +109,7 @@ void main() {
       await _skipOnboarding(tester);
 
       // Log several different activities
-      await _logActivity(tester, ActivityType.workoutWeights, 60);
+      await _logActivity(tester, ActivityType.workoutUpperBody, 60);
       await _logActivity(tester, ActivityType.studySerious, 90);
       await _logActivity(tester, ActivityType.meditation, 30);
 
@@ -142,7 +142,7 @@ void main() {
       await _skipOnboarding(tester);
 
       // Log an activity
-      await _logActivity(tester, ActivityType.workoutWeights, 60);
+      await _logActivity(tester, ActivityType.workoutUpperBody, 60);
 
       // Simulate time passing (this would require mocking DateTime)
       // For now, we'll test the UI components exist
@@ -165,7 +165,7 @@ void main() {
       await _skipOnboarding(tester);
 
       // Log some activities to create data
-      await _logActivity(tester, ActivityType.workoutWeights, 60);
+      await _logActivity(tester, ActivityType.workoutUpperBody, 60);
       await _logActivity(tester, ActivityType.studySerious, 90);
 
       // Navigate to backup screen
@@ -212,7 +212,7 @@ void main() {
 
       // Log many activities to test performance
       for (int i = 0; i < 100; i++) {
-        await _logActivity(tester, ActivityType.workoutWeights, 60);
+        await _logActivity(tester, ActivityType.workoutUpperBody, 60);
         
         // Only pump occasionally to speed up test
         if (i % 10 == 0) {

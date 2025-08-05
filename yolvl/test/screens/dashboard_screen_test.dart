@@ -149,7 +149,7 @@ void main() {
 
     testWidgets('should display degradation warnings when present', (tester) async {
       // Set up user with old activity dates to trigger warnings
-      testUser.setLastActivityDate(ActivityType.workoutWeights, 
+      testUser.setLastActivityDate(ActivityType.workoutUpperBody, 
           DateTime.now().subtract(const Duration(days: 4)));
       
       await tester.pumpWidget(createTestWidget());

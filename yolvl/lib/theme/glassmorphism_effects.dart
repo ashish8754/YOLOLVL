@@ -70,7 +70,7 @@ class GlassmorphismEffects {
     );
   }
 
-  /// Creates a hunter panel with enhanced glassmorphism effect (based on CSS glass-card)
+  /// Creates a hunter panel with enhanced glassmorphism effect
   static Widget hunterPanel({
     required Widget child,
     double? width,
@@ -86,30 +86,28 @@ class GlassmorphismEffects {
       margin: margin,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        color: Colors.white.withValues(alpha: 0.35), // rgba(255, 255, 255, 0.35)
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            SoloLevelingColors.shadowDepth.withValues(alpha: 0.3),
+            SoloLevelingColors.deepShadow.withValues(alpha: 0.2),
+          ],
+        ),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.3), // rgba(255, 255, 255, 0.3)
-          width: 1,
+          color: SoloLevelingColors.electricBlue.withValues(alpha: 0.3),
+          width: 1.5,
         ),
         boxShadow: [
-          // Main shadow: 0 8px 32px rgba(0, 0, 0, 0.1)
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 32,
-            spreadRadius: 0,
+            color: SoloLevelingColors.voidBlack.withValues(alpha: 0.5),
+            blurRadius: 15,
+            spreadRadius: 2,
             offset: const Offset(0, 8),
-          ),
-          // Inner glow effect: inset 0 0 40px 20px rgba(255, 255, 255, 0.2)
-          BoxShadow(
-            color: Colors.white.withValues(alpha: 0.2),
-            blurRadius: 40,
-            spreadRadius: 20,
-            offset: const Offset(0, 0),
-            blurStyle: BlurStyle.inner,
           ),
           if (glowEffect)
             BoxShadow(
-              color: const Color(0xFF1E40AF).withValues(alpha: 0.1),
+              color: SoloLevelingColors.electricBlue.withValues(alpha: 0.2),
               blurRadius: 25,
               spreadRadius: 0,
               offset: const Offset(0, 0),
@@ -118,58 +116,23 @@ class GlassmorphismEffects {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
-        child: Stack(
-          children: [
-            // Main content with backdrop filter
-            BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16), // backdrop-filter: blur(16px)
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: padding ?? const EdgeInsets.all(20),
-                child: child,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  SoloLevelingColors.shadowDepth.withValues(alpha: 0.4),
+                  SoloLevelingColors.voidBlack.withValues(alpha: 0.3),
+                ],
               ),
             ),
-            // Top highlight line (::before)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 1,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.transparent,
-                      Colors.white.withValues(alpha: 0.8),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            // Left highlight line (::after)
-            Positioned(
-              top: 0,
-              left: 0,
-              width: 1,
-              bottom: 0,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.white.withValues(alpha: 0.8),
-                      Colors.transparent,
-                      Colors.white.withValues(alpha: 0.3),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
+            padding: padding ?? const EdgeInsets.all(20),
+            child: child,
+          ),
         ),
       ),
     );

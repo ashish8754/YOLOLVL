@@ -92,8 +92,8 @@ void main() {
           final user = User.create(id: 'test_$i', name: 'Test $i');
           user.setStat(StatType.strength, 2.0);
           
-          final gains = StatsService.calculateStatGains(ActivityType.workoutWeights, 60);
-          final expGain = EXPService.calculateEXPGain('workoutWeights', 60);
+          final gains = StatsService.calculateStatGains(ActivityType.workoutUpperBody, 60);
+          final expGain = EXPService.calculateEXPGain('workoutUpperBody', 60);
           
           // Use the values to prevent optimization
           expect(gains[StatType.strength], equals(0.06));
@@ -133,7 +133,7 @@ void main() {
         // Start many concurrent calculations
         for (int i = 0; i < 100; i++) {
           futures.add(Future(() => 
-            StatsService.calculateStatGains(ActivityType.workoutWeights, 60)
+            StatsService.calculateStatGains(ActivityType.workoutUpperBody, 60)
           ));
         }
         
@@ -183,7 +183,7 @@ void main() {
         
         // Test with extreme values
         final extremeGains = StatsService.calculateStatGains(
-          ActivityType.workoutWeights, 
+          ActivityType.workoutUpperBody, 
           1440 // 24 hours
         );
         
@@ -207,7 +207,7 @@ void main() {
         
         // Test with very small values
         for (int i = 0; i < 1000; i++) {
-          final gains = StatsService.calculateStatGains(ActivityType.workoutWeights, 1);
+          final gains = StatsService.calculateStatGains(ActivityType.workoutUpperBody, 1);
           expect(gains[StatType.strength], closeTo(0.001, 0.0001));
         }
         
@@ -228,8 +228,8 @@ void main() {
         // Perform many offline operations
         for (int i = 0; i < 100; i++) {
           // Log activity
-          final gains = StatsService.calculateStatGains(ActivityType.workoutWeights, 60);
-          final expGain = EXPService.calculateEXPGain('workoutWeights', 60);
+          final gains = StatsService.calculateStatGains(ActivityType.workoutUpperBody, 60);
+          final expGain = EXPService.calculateEXPGain('workoutUpperBody', 60);
           
           // Update user
           for (final entry in gains.entries) {

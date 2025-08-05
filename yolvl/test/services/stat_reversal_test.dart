@@ -15,7 +15,7 @@ void main() {
 
       // Act
       final reversals = StatsService.calculateStatReversals(
-        ActivityType.workoutWeights,
+        ActivityType.workoutUpperBody,
         120, // 2 hours
         storedGains,
       );
@@ -29,7 +29,7 @@ void main() {
     test('calculateStatReversals should fallback to calculated gains when stored gains are null', () {
       // Act
       final reversals = StatsService.calculateStatReversals(
-        ActivityType.workoutWeights,
+        ActivityType.workoutUpperBody,
         120, // 2 hours
         null,
       );
@@ -431,7 +431,7 @@ void main() {
 
       // Act - reverse the activity
       final statReversals = StatsService.calculateStatReversals(
-        ActivityType.workoutWeights,
+        ActivityType.workoutUpperBody,
         120,
         storedStatGains,
       );
@@ -482,7 +482,7 @@ void main() {
 
       // Act
       final statReversals = StatsService.calculateStatReversals(
-        ActivityType.workoutWeights,
+        ActivityType.workoutUpperBody,
         200, // Duration doesn't matter when using stored gains
         storedStatGains,
       );

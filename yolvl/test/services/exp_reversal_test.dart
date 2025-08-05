@@ -204,7 +204,7 @@ void main() {
       );
 
       // Act - reverse EXP from 90-minute workout
-      final expGain = EXPService.calculateEXPGain('workoutWeights', 90);
+      final expGain = EXPService.calculateEXPGain('workoutUpperBody', 90);
       final updatedUser = EXPService.handleEXPReversal(user, expGain);
 
       // Assert

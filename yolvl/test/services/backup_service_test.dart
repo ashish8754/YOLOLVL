@@ -77,7 +77,7 @@ void main() {
         // Create test activity
         final activity = ActivityLog.create(
           id: 'test_activity',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 60,
           statGains: {StatType.strength: 0.06, StatType.endurance: 0.04},
           expGained: 60,
@@ -158,7 +158,7 @@ void main() {
           'activities': [
             {
               'id': 'imported_activity',
-              'activityType': 'workoutWeights',
+              'activityType': 'workoutUpperBody',
               'durationMinutes': 90,
               'timestamp': DateTime.now().toIso8601String(),
               'statGains': {'strength': 0.09, 'endurance': 0.06},
@@ -169,7 +169,7 @@ void main() {
           'settings': {
             'isDarkMode': true,
             'notificationsEnabled': true,
-            'enabledActivities': ['workoutWeights', 'studySerious'],
+            'enabledActivities': ['workoutUpperBody', 'studySerious'],
             'customStatIncrements': {},
             'relaxedWeekendMode': false,
             'dailyReminderHour': 20,
@@ -312,7 +312,7 @@ void main() {
       test('should validate activity data', () {
         final activity = ActivityLog.create(
           id: 'test',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: -10, // Invalid negative duration
           statGains: {},
           expGained: 60,
@@ -335,7 +335,7 @@ void main() {
       test('should validate EXP values', () {
         final activity = ActivityLog.create(
           id: 'test',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 60,
           statGains: {},
           expGained: -10, // Invalid negative EXP
@@ -365,7 +365,7 @@ void main() {
 
         final activity = ActivityLog.create(
           id: 'test_activity',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 60,
           statGains: {StatType.strength: 0.06},
           expGained: 60,
@@ -416,7 +416,7 @@ void main() {
           'activities': [
             {
               'id': 'test_activity',
-              'activityType': 'workoutWeights',
+              'activityType': 'workoutUpperBody',
               'durationMinutes': 60,
               'timestamp': DateTime.now().toIso8601String(),
               'statGains': {'strength': 0.06},
@@ -556,7 +556,7 @@ void main() {
         for (int i = 0; i < 100; i++) {
           final activity = ActivityLog.create(
             id: 'activity_$i',
-            activityType: ActivityType.workoutWeights,
+            activityType: ActivityType.workoutUpperBody,
             durationMinutes: 60,
             statGains: {StatType.strength: 0.06},
             expGained: 60,
@@ -646,7 +646,7 @@ void main() {
         final specificTimestamp = DateTime(2025, 1, 15, 10, 30);
         final activity = ActivityLog.create(
           id: 'test_activity',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 90,
           statGains: {StatType.strength: 0.09, StatType.endurance: 0.06},
           expGained: 90,

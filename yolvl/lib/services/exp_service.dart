@@ -72,10 +72,34 @@ class EXPService {
   }
 
   /// Check if user can level up and return level-up information
+  /// 
+  /// **FIXED:** Corrected EXP threshold interpretation. calculateEXPThreshold(level)
+  /// returns the TOTAL cumulative EXP needed to REACH that level, not the EXP
+  /// needed to advance FROM that level to the next.
+  /// 
+  /// **Correct Logic:**
+  /// - To advance from level N to level N+1, you need:
+  ///   calculateEXPThreshold(N+1) - calculateEXPThreshold(N) EXP
+  /// - User's current EXP is compared against the next level's total threshold
+  /// - Excess EXP is calculated as: currentEXP - totalEXPNeededForNewLevel
   static LevelUpResult checkLevelUp(User user) {
-    final currentThreshold = calculateEXPThreshold(user.level);
+    int newLevel = user.level;
+    int levelsGained = 0;
     
-    if (user.currentEXP < currentThreshold) {
+    // Check if user can level up by comparing current EXP to next level's threshold
+    while (newLevel < 1000) { // Safety limit to prevent infinite loops
+      final nextLevelThreshold = calculateEXPThreshold(newLevel + 1);
+      
+      if (user.currentEXP >= nextLevelThreshold) {
+        newLevel++;
+        levelsGained++;
+      } else {
+        break;
+      }
+    }
+    
+    // If no level-up occurred
+    if (levelsGained == 0) {
       return LevelUpResult(
         canLevelUp: false,
         newLevel: user.level,
@@ -83,28 +107,15 @@ class EXPService {
         levelsGained: 0,
       );
     }
-
-    // Handle multiple level-ups
-    int newLevel = user.level;
-    double remainingEXP = user.currentEXP;
-    int levelsGained = 0;
-
-    while (remainingEXP >= calculateEXPThreshold(newLevel)) {
-      final threshold = calculateEXPThreshold(newLevel);
-      remainingEXP -= threshold;
-      newLevel++;
-      levelsGained++;
-      
-      // Safety check to prevent infinite loops
-      if (levelsGained > 100) {
-        break;
-      }
-    }
+    
+    // Calculate excess EXP: current EXP minus the total EXP needed to reach the new level
+    final totalEXPNeededForNewLevel = calculateEXPThreshold(newLevel);
+    final excessEXP = user.currentEXP - totalEXPNeededForNewLevel;
 
     return LevelUpResult(
       canLevelUp: true,
       newLevel: newLevel,
-      excessEXP: remainingEXP,
+      excessEXP: excessEXP,
       levelsGained: levelsGained,
     );
   }

@@ -39,7 +39,7 @@ void main() {
 
     group('calculateEXPGain', () {
       test('should calculate 1 EXP per minute for standard activities', () {
-        expect(EXPService.calculateEXPGain('workoutWeights', 60), equals(60.0));
+        expect(EXPService.calculateEXPGain('workoutUpperBody', 60), equals(60.0));
         expect(EXPService.calculateEXPGain('studySerious', 30), equals(30.0));
         expect(EXPService.calculateEXPGain('meditation', 15), equals(15.0));
       });
@@ -51,12 +51,12 @@ void main() {
       });
 
       test('should handle zero duration', () {
-        expect(EXPService.calculateEXPGain('workoutWeights', 0), equals(0.0));
+        expect(EXPService.calculateEXPGain('workoutUpperBody', 0), equals(0.0));
         expect(EXPService.calculateEXPGain('quitBadHabit', 0), equals(60.0));
       });
 
       test('should throw error for negative duration', () {
-        expect(() => EXPService.calculateEXPGain('workoutWeights', -1), throwsArgumentError);
+        expect(() => EXPService.calculateEXPGain('workoutUpperBody', -1), throwsArgumentError);
       });
     });
 
@@ -76,7 +76,7 @@ void main() {
 
       test('should return true when EXP meets threshold', () {
         final user = User.create(id: 'test', name: 'Test')
-          ..currentEXP = 1000.0
+          ..currentEXP = 1200.0  // Level 2 threshold
           ..level = 1;
 
         final result = EXPService.checkLevelUp(user);
@@ -89,7 +89,7 @@ void main() {
 
       test('should handle excess EXP rollover', () {
         final user = User.create(id: 'test', name: 'Test')
-          ..currentEXP = 1150.0
+          ..currentEXP = 1350.0  // 150 EXP above level 2 threshold (1200)
           ..level = 1;
 
         final result = EXPService.checkLevelUp(user);
@@ -102,21 +102,21 @@ void main() {
 
       test('should handle multiple level-ups', () {
         final user = User.create(id: 'test', name: 'Test')
-          ..currentEXP = 2500.0 // Enough for level 1->2->3
+          ..currentEXP = 2500.0 // Level 6 threshold is ~2488, so level up to 6
           ..level = 1;
 
         final result = EXPService.checkLevelUp(user);
 
         expect(result.canLevelUp, isTrue);
-        expect(result.newLevel, equals(3));
-        expect(result.levelsGained, equals(2));
-        // 2500 - 1000 (level 1->2) - 1200 (level 2->3) = 300
-        expect(result.excessEXP, equals(300.0));
+        expect(result.newLevel, equals(6));
+        expect(result.levelsGained, equals(5));
+        // 2500 - 2488.32 (level 6 threshold) ≈ 11.68
+        expect(result.excessEXP, closeTo(11.68, 0.1));
       });
 
       test('should handle edge case at exact threshold', () {
         final user = User.create(id: 'test', name: 'Test')
-          ..currentEXP = 1200.0
+          ..currentEXP = 1440.0  // Level 3 threshold
           ..level = 2;
 
         final result = EXPService.checkLevelUp(user);
@@ -142,7 +142,7 @@ void main() {
 
       test('should update user level and EXP when level-up occurs', () {
         final user = User.create(id: 'test', name: 'Test')
-          ..currentEXP = 1150.0
+          ..currentEXP = 1350.0  // 150 EXP above level 2 threshold (1200)
           ..level = 1;
 
         final result = EXPService.applyLevelUp(user);
@@ -158,8 +158,8 @@ void main() {
 
         final result = EXPService.applyLevelUp(user);
 
-        expect(result.level, equals(3));
-        expect(result.currentEXP, equals(300.0));
+        expect(result.level, equals(6));
+        expect(result.currentEXP, closeTo(11.68, 0.1));
       });
     });
 
@@ -180,10 +180,10 @@ void main() {
           ..currentEXP = 800.0
           ..level = 1;
 
-        final result = EXPService.addEXP(user, 300.0);
+        final result = EXPService.addEXP(user, 500.0); // 800 + 500 = 1300, which is > 1200 (level 2 threshold)
 
         expect(result.level, equals(2));
-        expect(result.currentEXP, equals(100.0)); // 1100 - 1000 = 100
+        expect(result.currentEXP, equals(100.0)); // 1300 - 1200 = 100
       });
 
       test('should handle zero EXP addition', () {

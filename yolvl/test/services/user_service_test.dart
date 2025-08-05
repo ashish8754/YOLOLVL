@@ -508,11 +508,11 @@ void main() {
         final now = DateTime.now();
         
         // Initially no activity dates
-        expect(user.getLastActivityDate(ActivityType.workoutWeights), isNull);
+        expect(user.getLastActivityDate(ActivityType.workoutUpperBody), isNull);
         
         // Set activity date
-        user.setLastActivityDate(ActivityType.workoutWeights, now);
-        expect(user.getLastActivityDate(ActivityType.workoutWeights), equals(now));
+        user.setLastActivityDate(ActivityType.workoutUpperBody, now);
+        expect(user.getLastActivityDate(ActivityType.workoutUpperBody), equals(now));
       });
     });
 

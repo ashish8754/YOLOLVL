@@ -96,7 +96,7 @@ void main() {
       // Add first activity
       final activity = ActivityLog.create(
         id: 'test_activity',
-        activityType: ActivityType.workoutWeights,
+        activityType: ActivityType.workoutUpperBody,
         durationMinutes: 60,
         statGains: {StatType.strength: 0.06, StatType.endurance: 0.04},
         expGained: 60,
@@ -131,7 +131,7 @@ void main() {
       for (int i = 0; i < 50; i++) {
         final activity = ActivityLog.create(
           id: 'activity_$i',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 60,
           statGains: {StatType.strength: 0.06},
           expGained: 60,
@@ -153,7 +153,7 @@ void main() {
       for (int i = 0; i < 25; i++) {
         final activity = ActivityLog.create(
           id: 'activity_$i',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 60,
           statGains: {StatType.strength: 0.06},
           expGained: 60,
@@ -178,7 +178,7 @@ void main() {
       // Add first activity
       final activity = ActivityLog.create(
         id: 'test_activity',
-        activityType: ActivityType.workoutWeights,
+        activityType: ActivityType.workoutUpperBody,
         durationMinutes: 60,
         statGains: {StatType.strength: 0.06},
         expGained: 60,

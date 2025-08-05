@@ -194,31 +194,31 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     final notchMargin = math.max(8.0, mediaQuery.padding.bottom * 0.1);
     
     // Calculate required height based on content with more generous padding
-    final iconSize = math.max(20.0, textScaler.scale(20.0)); // Slightly smaller icons
-    final adjustedSelectedFontSize = math.min(selectedFontSize, 12.0); // Cap font size
-    final adjustedUnselectedFontSize = math.min(unselectedFontSize, 10.0); // Cap font size
-    final requiredHeight = iconSize + adjustedSelectedFontSize + 24.0; // icon + text + generous padding
-    final bottomAppBarHeight = math.max(kBottomNavigationBarHeight + 16, requiredHeight + 16);
+    final iconSize = 16.0; // Fixed smaller icon size to prevent overflow
+    final adjustedSelectedFontSize = math.min(selectedFontSize, 10.0); // Even stricter cap
+    final adjustedUnselectedFontSize = math.min(unselectedFontSize, 8.0); // Even stricter cap
+    final requiredHeight = iconSize + adjustedSelectedFontSize + 16.0; // icon + text + minimal padding
+    final bottomAppBarHeight = math.max(kBottomNavigationBarHeight + 8, requiredHeight + 8);
     
     return BottomAppBar(
       shape: const CircularNotchedRectangle(),
       notchMargin: notchMargin,
       color: Theme.of(context).colorScheme.surfaceContainer,
-      height: bottomAppBarHeight,
-      child: SizedBox(
-        height: bottomAppBarHeight - 8, // Leave some space for the BottomAppBar itself
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: _onTabTapped,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          selectedItemColor: Theme.of(context).colorScheme.primary,
-          unselectedItemColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-          selectedFontSize: adjustedSelectedFontSize,
-          unselectedFontSize: adjustedUnselectedFontSize,
-          // Ensure proper icon size for accessibility
-          iconSize: iconSize,
+      child: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: _onTabTapped,
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        selectedItemColor: Theme.of(context).colorScheme.primary,
+        unselectedItemColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+        selectedFontSize: adjustedSelectedFontSize,
+        unselectedFontSize: adjustedUnselectedFontSize,
+        iconSize: iconSize,
+        // Add these properties to prevent overflow
+        showSelectedLabels: true,
+        showUnselectedLabels: true,
+        enableFeedback: false, // Disable feedback to reduce height requirements
         items: [
           BottomNavigationBarItem(
             icon: SoloLevelingIconFactory.forNavigation(
@@ -271,7 +271,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
             tooltip: 'Open Settings',
           ),
         ],
-        ),
       ),
     );
   }

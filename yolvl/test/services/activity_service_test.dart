@@ -51,7 +51,7 @@ void main() {
       test('should validate input correctly', () async {
         // Test negative duration
         var result = await activityService.logActivity(
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: -10,
         );
         expect(result.success, isFalse);
@@ -59,7 +59,7 @@ void main() {
 
         // Test zero duration
         result = await activityService.logActivity(
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 0,
         );
         expect(result.success, isFalse);
@@ -67,7 +67,7 @@ void main() {
 
         // Test excessive duration
         result = await activityService.logActivity(
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 1500, // More than 24 hours
         );
         expect(result.success, isFalse);
@@ -79,17 +79,17 @@ void main() {
       test('should calculate expected gains correctly', () {
         // Act
         final preview = activityService.calculateExpectedGains(
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 90,
         );
 
         // Assert
         expect(preview.isValid, isTrue);
-        expect(preview.activityType, equals(ActivityType.workoutWeights));
+        expect(preview.activityType, equals(ActivityType.workoutUpperBody));
         expect(preview.durationMinutes, equals(90));
         expect(preview.expGained, equals(90.0)); // 1 EXP per minute
         expect(preview.statGains[StatType.strength], equals(0.09)); // 0.06/hour * 1.5 hours
-        expect(preview.statGains[StatType.endurance], equals(0.06)); // 0.04/hour * 1.5 hours
+        expect(preview.statGains[StatType.endurance], equals(0.045)); // 0.03/hour * 1.5 hours
       });
 
       test('should handle quit bad habit preview correctly', () {
@@ -108,7 +108,7 @@ void main() {
       test('should validate preview input', () {
         // Act
         final preview = activityService.calculateExpectedGains(
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: -10,
         );
 
@@ -120,13 +120,13 @@ void main() {
       test('should format gain text correctly', () {
         // Act
         final preview = activityService.calculateExpectedGains(
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 60,
         );
 
         // Assert
         expect(preview.getStatGainText(StatType.strength), equals('+0.06'));
-        expect(preview.getStatGainText(StatType.endurance), equals('+0.04'));
+        expect(preview.getStatGainText(StatType.endurance), equals('+0.03'));
         expect(preview.getStatGainText(StatType.intelligence), equals('')); // Not affected
         expect(preview.expGainText, equals('+60 EXP'));
       });
@@ -134,7 +134,7 @@ void main() {
       test('should identify affected stats correctly', () {
         // Act
         final preview = activityService.calculateExpectedGains(
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 60,
         );
 
@@ -165,7 +165,7 @@ void main() {
 
         // Log an activity
         final result = await activityService.logActivity(
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 60,
         );
 
@@ -173,14 +173,14 @@ void main() {
         expect(result.expGained, equals(60.0));
         expect(result.leveledUp, isFalse);
         expect(result.activityLog, isNotNull);
-        expect(result.activityLog!.activityType, equals(ActivityType.workoutWeights.name));
+        expect(result.activityLog!.activityType, equals(ActivityType.workoutUpperBody.name));
         expect(result.activityLog!.durationMinutes, equals(60));
       });
 
       test('should fail to log activity without user', () async {
         // Try to log activity without creating a user first
         final result = await activityService.logActivity(
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 60,
         );
 
@@ -208,7 +208,7 @@ void main() {
 
         // Log activity that should trigger level up
         final result = await activityService.logActivity(
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 60, // 60 EXP should trigger level up
         );
 
@@ -234,7 +234,7 @@ void main() {
 
         // Log multiple activities
         await activityService.logActivity(
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 60,
         );
         await activityService.logActivity(
@@ -247,7 +247,7 @@ void main() {
 
         expect(history.length, equals(2));
         expect(history[0].activityType, equals(ActivityType.studySerious.name)); // Most recent first
-        expect(history[1].activityType, equals(ActivityType.workoutWeights.name));
+        expect(history[1].activityType, equals(ActivityType.workoutUpperBody.name));
       });
 
       test('should get todays activities', () async {

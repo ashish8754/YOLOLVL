@@ -141,7 +141,7 @@ void main() {
     group('calculateAllDegradation', () {
       test('should return empty map when no degradation needed', () {
         // Set recent activity dates
-        testUser.setLastActivityDate(ActivityType.workoutWeights, DateTime.now().subtract(const Duration(days: 1)));
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, DateTime.now().subtract(const Duration(days: 1)));
         testUser.setLastActivityDate(ActivityType.studySerious, DateTime.now().subtract(const Duration(days: 2)));
 
         final result = DegradationService.calculateAllDegradation(testUser);
@@ -150,7 +150,7 @@ void main() {
 
       test('should calculate degradation for workout category only', () {
         // Set old workout date, recent study date
-        testUser.setLastActivityDate(ActivityType.workoutWeights, DateTime.now().subtract(const Duration(days: 5)));
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, DateTime.now().subtract(const Duration(days: 5)));
         testUser.setLastActivityDate(ActivityType.studySerious, DateTime.now().subtract(const Duration(days: 1)));
 
         final result = DegradationService.calculateAllDegradation(testUser);
@@ -165,7 +165,7 @@ void main() {
 
       test('should calculate degradation for study category only', () {
         // Set recent workout date, old study date
-        testUser.setLastActivityDate(ActivityType.workoutWeights, DateTime.now().subtract(const Duration(days: 1)));
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, DateTime.now().subtract(const Duration(days: 1)));
         testUser.setLastActivityDate(ActivityType.studySerious, DateTime.now().subtract(const Duration(days: 5)));
 
         final result = DegradationService.calculateAllDegradation(testUser);
@@ -180,7 +180,7 @@ void main() {
 
       test('should calculate degradation for both categories', () {
         // Set old dates for both categories
-        testUser.setLastActivityDate(ActivityType.workoutWeights, DateTime.now().subtract(const Duration(days: 5)));
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, DateTime.now().subtract(const Duration(days: 5)));
         testUser.setLastActivityDate(ActivityType.studySerious, DateTime.now().subtract(const Duration(days: 4)));
 
         final result = DegradationService.calculateAllDegradation(testUser);
@@ -195,7 +195,7 @@ void main() {
 
       test('should use most recent activity date within category', () {
         // Set different dates for activities in same category
-        testUser.setLastActivityDate(ActivityType.workoutWeights, DateTime.now().subtract(const Duration(days: 5)));
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, DateTime.now().subtract(const Duration(days: 5)));
         testUser.setLastActivityDate(ActivityType.workoutCardio, DateTime.now().subtract(const Duration(days: 2))); // More recent
 
         final result = DegradationService.calculateAllDegradation(testUser);
@@ -209,7 +209,7 @@ void main() {
 
     group('applyDegradation', () {
       test('should return unchanged user when no degradation needed', () {
-        testUser.setLastActivityDate(ActivityType.workoutWeights, DateTime.now().subtract(const Duration(days: 1)));
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, DateTime.now().subtract(const Duration(days: 1)));
         testUser.setLastActivityDate(ActivityType.studySerious, DateTime.now().subtract(const Duration(days: 1)));
 
         final result = DegradationService.applyDegradation(testUser);
@@ -219,7 +219,7 @@ void main() {
       });
 
       test('should apply degradation to affected stats', () {
-        testUser.setLastActivityDate(ActivityType.workoutWeights, DateTime.now().subtract(const Duration(days: 5)));
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, DateTime.now().subtract(const Duration(days: 5)));
 
         final result = DegradationService.applyDegradation(testUser);
         
@@ -233,7 +233,7 @@ void main() {
       test('should enforce minimum stat values', () {
         // Set stats close to minimum
         testUser.setStat(StatType.strength, 1.005);
-        testUser.setLastActivityDate(ActivityType.workoutWeights, DateTime.now().subtract(const Duration(days: 5)));
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, DateTime.now().subtract(const Duration(days: 5)));
 
         final result = DegradationService.applyDegradation(testUser);
         
@@ -242,7 +242,7 @@ void main() {
 
       test('should update last active timestamp', () {
         final originalLastActive = testUser.lastActive;
-        testUser.setLastActivityDate(ActivityType.workoutWeights, DateTime.now().subtract(const Duration(days: 5)));
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, DateTime.now().subtract(const Duration(days: 5)));
 
         final result = DegradationService.applyDegradation(testUser);
         
@@ -252,7 +252,7 @@ void main() {
 
     group('hasPendingDegradation', () {
       test('should return false when no degradation pending', () {
-        testUser.setLastActivityDate(ActivityType.workoutWeights, DateTime.now().subtract(const Duration(days: 1)));
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, DateTime.now().subtract(const Duration(days: 1)));
         testUser.setLastActivityDate(ActivityType.studySerious, DateTime.now().subtract(const Duration(days: 1)));
 
         final result = DegradationService.hasPendingDegradation(testUser);
@@ -260,7 +260,7 @@ void main() {
       });
 
       test('should return true when degradation is pending', () {
-        testUser.setLastActivityDate(ActivityType.workoutWeights, DateTime.now().subtract(const Duration(days: 5)));
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, DateTime.now().subtract(const Duration(days: 5)));
 
         final result = DegradationService.hasPendingDegradation(testUser);
         expect(result, isTrue);
@@ -269,7 +269,7 @@ void main() {
 
     group('getDegradationWarnings', () {
       test('should return empty list when no warnings needed', () {
-        testUser.setLastActivityDate(ActivityType.workoutWeights, DateTime.now().subtract(const Duration(days: 1)));
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, DateTime.now().subtract(const Duration(days: 1)));
         testUser.setLastActivityDate(ActivityType.studySerious, DateTime.now().subtract(const Duration(days: 1)));
 
         final warnings = DegradationService.getDegradationWarnings(testUser);
@@ -277,7 +277,7 @@ void main() {
       });
 
       test('should return warning for upcoming degradation', () {
-        testUser.setLastActivityDate(ActivityType.workoutWeights, DateTime.now().subtract(const Duration(days: 2)));
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, DateTime.now().subtract(const Duration(days: 2)));
 
         final warnings = DegradationService.getDegradationWarnings(testUser);
         expect(warnings.length, equals(1));
@@ -287,7 +287,7 @@ void main() {
       });
 
       test('should return warning for active degradation', () {
-        testUser.setLastActivityDate(ActivityType.workoutWeights, DateTime.now().subtract(const Duration(days: 4)));
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, DateTime.now().subtract(const Duration(days: 4)));
 
         final warnings = DegradationService.getDegradationWarnings(testUser);
         expect(warnings.length, equals(1));
@@ -297,7 +297,7 @@ void main() {
       });
 
       test('should return warnings for multiple categories', () {
-        testUser.setLastActivityDate(ActivityType.workoutWeights, DateTime.now().subtract(const Duration(days: 4)));
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, DateTime.now().subtract(const Duration(days: 4)));
         testUser.setLastActivityDate(ActivityType.studySerious, DateTime.now().subtract(const Duration(days: 3)));
 
         final warnings = DegradationService.getDegradationWarnings(testUser);
@@ -314,11 +314,11 @@ void main() {
     group('resetDegradationTimer', () {
       test('should update last activity date for specified activity', () {
         final originalDate = DateTime.now().subtract(const Duration(days: 5));
-        testUser.setLastActivityDate(ActivityType.workoutWeights, originalDate);
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, originalDate);
 
-        final result = DegradationService.resetDegradationTimer(testUser, ActivityType.workoutWeights);
+        final result = DegradationService.resetDegradationTimer(testUser, ActivityType.workoutUpperBody);
         
-        final newDate = result.getLastActivityDate(ActivityType.workoutWeights);
+        final newDate = result.getLastActivityDate(ActivityType.workoutUpperBody);
         expect(newDate, isNotNull);
         expect(newDate!.isAfter(originalDate), isTrue);
       });
@@ -332,7 +332,7 @@ void main() {
 
       test('should calculate next degradation date correctly', () {
         final lastActivity = DateTime(2025, 1, 15);
-        testUser.setLastActivityDate(ActivityType.workoutWeights, lastActivity);
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, lastActivity);
 
         final result = DegradationService.getNextDegradationDate(testUser, ActivityCategory.workout);
         
@@ -343,7 +343,7 @@ void main() {
       test('should handle relaxed weekend mode', () {
         // Set last activity on Friday
         final lastActivity = DateTime(2025, 1, 17); // Friday
-        testUser.setLastActivityDate(ActivityType.workoutWeights, lastActivity);
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, lastActivity);
 
         final result = DegradationService.getNextDegradationDate(
           testUser, 
@@ -439,18 +439,18 @@ void main() {
 
       test('should handle stats already at minimum', () {
         testUser.setStat(StatType.strength, 1.0);
-        testUser.setLastActivityDate(ActivityType.workoutWeights, DateTime.now().subtract(const Duration(days: 10)));
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, DateTime.now().subtract(const Duration(days: 10)));
 
         final result = DegradationService.applyDegradation(testUser);
         expect(result.getStat(StatType.strength), equals(1.0)); // Should not go below minimum
       });
 
       test('should handle very long periods without activity', () {
-        testUser.setLastActivityDate(ActivityType.workoutWeights, DateTime.now().subtract(const Duration(days: 100)));
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, DateTime.now().subtract(const Duration(days: 100)));
 
         final degradation = DegradationService.calculateDegradation(
           ActivityCategory.workout,
-          testUser.getLastActivityDate(ActivityType.workoutWeights),
+          testUser.getLastActivityDate(ActivityType.workoutUpperBody),
         );
         
         expect(degradation, equals(-0.05)); // Should be capped at maximum

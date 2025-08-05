@@ -111,7 +111,7 @@ void main() {
 
       test('should handle very long durations', () {
         // Test 24 hours (1440 minutes)
-        final gains = StatsService.calculateStatGains(ActivityType.workoutWeights, 1440);
+        final gains = StatsService.calculateStatGains(ActivityType.workoutUpperBody, 1440);
         
         expect(gains[StatType.strength], equals(0.06 * 24)); // 24 hours
         expect(gains[StatType.endurance], equals(0.04 * 24));
@@ -185,7 +185,7 @@ void main() {
       test('should handle large activity datasets efficiently', () {
         // Create a large list of activities
         final activities = List.generate(1000, (index) => ActivityLogEntry(
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 60,
           timestamp: DateTime.now().subtract(Duration(days: index)),
         ));
@@ -231,7 +231,7 @@ void main() {
         testUser.setStat(StatType.endurance, 1.0);
         
         // Set old activity date to trigger degradation
-        testUser.setLastActivityDate(ActivityType.workoutWeights, 
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, 
             DateTime.now().subtract(const Duration(days: 10)));
 
         final result = DegradationService.applyDegradation(testUser);
@@ -244,12 +244,12 @@ void main() {
 
       test('should handle very long periods without activity', () {
         // Set activity date 1 year ago
-        testUser.setLastActivityDate(ActivityType.workoutWeights, 
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, 
             DateTime.now().subtract(const Duration(days: 365)));
 
         final degradation = DegradationService.calculateDegradation(
           ActivityCategory.workout,
-          testUser.getLastActivityDate(ActivityType.workoutWeights),
+          testUser.getLastActivityDate(ActivityType.workoutUpperBody),
         );
         
         // Should be capped at maximum degradation
@@ -258,7 +258,7 @@ void main() {
 
       test('should handle mixed activity categories correctly', () {
         // Set different degradation states for different categories
-        testUser.setLastActivityDate(ActivityType.workoutWeights, 
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, 
             DateTime.now().subtract(const Duration(days: 5))); // Should degrade
         testUser.setLastActivityDate(ActivityType.studySerious, 
             DateTime.now().subtract(const Duration(days: 1))); // Should not degrade
@@ -279,7 +279,7 @@ void main() {
       test('should handle weekend mode calculations correctly', () {
         // Set activity on Friday
         final friday = DateTime(2025, 1, 17); // Friday
-        testUser.setLastActivityDate(ActivityType.workoutWeights, friday);
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, friday);
 
         // Check degradation on Monday (4 calendar days, but only 1 weekday)
         final monday = DateTime(2025, 1, 20); // Monday
@@ -301,19 +301,19 @@ void main() {
 
       test('should handle degradation timing edge cases', () {
         // Test exactly at threshold
-        testUser.setLastActivityDate(ActivityType.workoutWeights, 
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, 
             DateTime.now().subtract(const Duration(days: 3)));
 
         final shouldDegrade = DegradationService.shouldApplyDegradation(
           ActivityCategory.workout,
-          testUser.getLastActivityDate(ActivityType.workoutWeights),
+          testUser.getLastActivityDate(ActivityType.workoutUpperBody),
         );
         
         expect(shouldDegrade, isTrue);
       });
 
       test('should handle multiple degradation applications', () {
-        testUser.setLastActivityDate(ActivityType.workoutWeights, 
+        testUser.setLastActivityDate(ActivityType.workoutUpperBody, 
             DateTime.now().subtract(const Duration(days: 5)));
 
         // Apply degradation multiple times
@@ -404,7 +404,7 @@ void main() {
         user.setStat(StatType.strength, updatedStats[StatType.strength]!);
 
         // Then apply degradation
-        user.setLastActivityDate(ActivityType.workoutWeights, 
+        user.setLastActivityDate(ActivityType.workoutUpperBody, 
             DateTime.now().subtract(const Duration(days: 5)));
         
         final degradedUser = DegradationService.applyDegradation(user);
@@ -422,7 +422,7 @@ void main() {
         // Simulate multiple activities affecting overlapping stats
         final activities = [
           ActivityLogEntry(
-            activityType: ActivityType.workoutWeights, // Strength + Endurance
+            activityType: ActivityType.workoutUpperBody, // Strength + Endurance
             durationMinutes: 60,
             timestamp: DateTime.now(),
           ),
@@ -450,11 +450,11 @@ void main() {
     group('Boundary Value Testing', () {
       test('should handle minimum possible values', () {
         // Test with minimum durations
-        expect(() => StatsService.calculateStatGains(ActivityType.workoutWeights, 1), 
+        expect(() => StatsService.calculateStatGains(ActivityType.workoutUpperBody, 1), 
                returnsNormally);
         
         // Test with minimum EXP
-        expect(() => EXPService.calculateEXPGain('workoutWeights', 1), 
+        expect(() => EXPService.calculateEXPGain('workoutUpperBody', 1), 
                returnsNormally);
         
         // Test with minimum level
@@ -464,7 +464,7 @@ void main() {
 
       test('should handle maximum reasonable values', () {
         // Test with maximum reasonable duration (24 hours)
-        expect(() => StatsService.calculateStatGains(ActivityType.workoutWeights, 1440), 
+        expect(() => StatsService.calculateStatGains(ActivityType.workoutUpperBody, 1440), 
                returnsNormally);
         
         // Test with high level
@@ -472,17 +472,17 @@ void main() {
                returnsNormally);
         
         // Test with high EXP values
-        expect(() => EXPService.calculateEXPGain('workoutWeights', 1440), 
+        expect(() => EXPService.calculateEXPGain('workoutUpperBody', 1440), 
                returnsNormally);
       });
 
       test('should handle precision edge cases', () {
         // Test with very small stat gains
-        final gains = StatsService.calculateStatGains(ActivityType.workoutWeights, 1);
+        final gains = StatsService.calculateStatGains(ActivityType.workoutUpperBody, 1);
         expect(gains[StatType.strength], closeTo(0.001, 0.0001));
         
         // Test with very small EXP gains
-        final expGain = EXPService.calculateEXPGain('workoutWeights', 1);
+        final expGain = EXPService.calculateEXPGain('workoutUpperBody', 1);
         expect(expGain, equals(1.0));
       });
     });

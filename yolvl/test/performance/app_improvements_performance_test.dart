@@ -276,10 +276,10 @@ void main() {
           StatsService.validateStatsForChart(initialStats);
           
           // Stat calculations
-          StatsService.calculateStatGains(ActivityType.workoutWeights, 60);
+          StatsService.calculateStatGains(ActivityType.workoutUpperBody, 60);
           
           // Reversal calculations
-          StatsService.calculateStatReversals(ActivityType.workoutWeights, 60, null);
+          StatsService.calculateStatReversals(ActivityType.workoutUpperBody, 60, null);
           
           // Export validation
           StatsService.validateStatsForExport(initialStats);
@@ -351,7 +351,7 @@ void main() {
           
           // Null stat gains
           final reversals = StatsService.calculateStatReversals(
-            ActivityType.workoutWeights, 60, null
+            ActivityType.workoutUpperBody, 60, null
           );
           expect(reversals, isNotNull);
         }
@@ -378,7 +378,7 @@ void main() {
             // Multiple operations per future
             StatsService.validateInfiniteStats(stats);
             StatsService.validateStatsForChart(stats);
-            StatsService.calculateStatGains(ActivityType.workoutWeights, 60);
+            StatsService.calculateStatGains(ActivityType.workoutUpperBody, 60);
             
             return true;
           }));

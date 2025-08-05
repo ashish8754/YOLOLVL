@@ -58,7 +58,7 @@ void main() {
       // Create test activity
       testActivity = ActivityLog.create(
         id: 'test_activity',
-        activityType: ActivityType.workoutWeights,
+        activityType: ActivityType.workoutUpperBody,
         durationMinutes: 60,
         statGains: {
           StatType.strength: 0.06,
@@ -117,7 +117,7 @@ void main() {
         // Arrange
         final invalidActivity = ActivityLog.create(
           id: 'invalid_activity',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: -10, // Invalid negative duration
           statGains: {},
           expGained: 0.0,
@@ -138,7 +138,7 @@ void main() {
         // Arrange
         final invalidActivity = ActivityLog.create(
           id: 'invalid_activity',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 60,
           statGains: {},
           expGained: -50.0, // Invalid negative EXP
@@ -159,7 +159,7 @@ void main() {
         // Arrange
         final invalidActivity = ActivityLog.create(
           id: 'invalid_activity',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 60,
           statGains: {
             StatType.strength: double.nan, // Invalid NaN value
@@ -224,7 +224,7 @@ void main() {
         // Arrange
         final extremeActivity = ActivityLog.create(
           id: 'extreme_activity',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 60,
           statGains: {
             StatType.strength: 1000.0, // Extreme value that would cause negative stats
@@ -248,7 +248,7 @@ void main() {
         // Arrange
         final futureActivity = ActivityLog.create(
           id: 'future_activity',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 60,
           statGains: {StatType.strength: 0.06},
           expGained: 60.0,
@@ -435,7 +435,7 @@ void main() {
         // Arrange
         final highEXPActivity = ActivityLog.create(
           id: 'high_exp_activity',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 600, // 10 hours
           statGains: {StatType.strength: 0.6},
           expGained: 600.0, // High EXP that might cause level-down

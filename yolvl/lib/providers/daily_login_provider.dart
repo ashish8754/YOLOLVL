@@ -68,11 +68,11 @@ class DailyLoginProvider extends ChangeNotifier {
     try {
       final stats = DailyLoginService.getLoginStatistics();
       
-      _currentStreak = stats['currentStreak'] ?? 0;
-      _totalLoginDays = stats['totalLoginDays'] ?? 0;
-      _lastLoginDate = stats['lastLoginDate'];
-      _canLoginToday = stats['canLoginToday'] ?? true;
-      _streakMultiplier = stats['streakMultiplier'] ?? 1.0;
+      _currentStreak = (stats['currentStreak'] as int?) ?? 0;
+      _totalLoginDays = (stats['totalLoginDays'] as int?) ?? 0;
+      _lastLoginDate = stats['lastLoginDate'] as DateTime?;
+      _canLoginToday = (stats['canLoginToday'] as bool?) ?? true;
+      _streakMultiplier = (stats['streakMultiplier'] as double?) ?? 1.0;
       
       // Check if today's reward exists and is claimed
       final today = DateTime.now();
@@ -178,15 +178,19 @@ class DailyLoginProvider extends ChangeNotifier {
       // For now, create a minimal user for calendar generation
       final tempUser = User.create(id: 'temp', name: 'User');
       
-      _monthlyCalendar = DailyLoginService.generateMonthlyCalendar(
+      final calendar = DailyLoginService.generateMonthlyCalendar(
         _currentCalendarYear,
         _currentCalendarMonth,
         tempUser,
       );
       
+      // Ensure we have a proper list of DailyReward objects
+      _monthlyCalendar = List<DailyReward>.from(calendar);
+      
       _clearError();
     } catch (e) {
       _setError('Failed to load monthly calendar: $e');
+      _monthlyCalendar = []; // Reset to empty list on error
     } finally {
       _isLoadingCalendar = false;
       notifyListeners();
@@ -203,11 +207,13 @@ class DailyLoginProvider extends ChangeNotifier {
       _currentCalendarMonth = month;
       notifyListeners();
       
-      _monthlyCalendar = DailyLoginService.generateMonthlyCalendar(year, month, user);
+      final calendar = DailyLoginService.generateMonthlyCalendar(year, month, user);
+      _monthlyCalendar = List<DailyReward>.from(calendar);
       
       _clearError();
     } catch (e) {
       _setError('Failed to load calendar for $year-$month: $e');
+      _monthlyCalendar = []; // Reset to empty list on error
     } finally {
       _isLoadingCalendar = false;
       notifyListeners();

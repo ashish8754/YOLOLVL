@@ -327,11 +327,17 @@ class SystemIntegrationExamples {
   static String _getActivityDisplayName(ActivityType activityType) {
     switch (activityType) {
       case ActivityType.workoutUpperBody:
-        return 'Weight Training';
+        return 'Upper Body Training';
+      case ActivityType.workoutLowerBody:
+        return 'Lower Body Training';
+      case ActivityType.workoutCore:
+        return 'Core Training';
       case ActivityType.workoutCardio:
         return 'Cardio Workout';
       case ActivityType.workoutYoga:
         return 'Yoga Session';
+      case ActivityType.walking:
+        return 'Walking';
       case ActivityType.studySerious:
         return 'Serious Study';
       case ActivityType.studyCasual:

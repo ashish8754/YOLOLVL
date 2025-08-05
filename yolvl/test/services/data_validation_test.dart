@@ -15,8 +15,8 @@ void main() {
         expect(() => EXPService.calculateEXPThreshold(-100), throwsArgumentError);
 
         // Test invalid EXP inputs
-        expect(() => EXPService.calculateEXPGain('workoutWeights', -1), throwsArgumentError);
-        expect(() => EXPService.calculateEXPGain('workoutWeights', -100), throwsArgumentError);
+        expect(() => EXPService.calculateEXPGain('workoutUpperBody', -1), throwsArgumentError);
+        expect(() => EXPService.calculateEXPGain('workoutUpperBody', -100), throwsArgumentError);
 
         // Test invalid EXP addition
         final user = User.create(id: 'test', name: 'Test');
@@ -26,9 +26,9 @@ void main() {
 
       test('should validate stats service inputs', () {
         // Test invalid duration inputs
-        expect(() => StatsService.calculateStatGains(ActivityType.workoutWeights, -1), 
+        expect(() => StatsService.calculateStatGains(ActivityType.workoutUpperBody, -1), 
                throwsArgumentError);
-        expect(() => StatsService.calculateStatGains(ActivityType.workoutWeights, -100), 
+        expect(() => StatsService.calculateStatGains(ActivityType.workoutUpperBody, -100), 
                throwsArgumentError);
 
         // Test with all activity types to ensure consistency
@@ -221,7 +221,7 @@ void main() {
     group('Precision and Rounding', () {
       test('should handle floating point precision correctly', () {
         // Test with values that might cause precision issues
-        final gains = StatsService.calculateStatGains(ActivityType.workoutWeights, 1);
+        final gains = StatsService.calculateStatGains(ActivityType.workoutUpperBody, 1);
         expect(gains[StatType.strength], closeTo(0.001, 0.0001));
         
         // Test accumulation of small values
@@ -247,7 +247,7 @@ void main() {
         user.setStat(StatType.strength, 1.001); // Just above minimum
         
         // Set activity date to trigger degradation
-        user.setLastActivityDate(ActivityType.workoutWeights, 
+        user.setLastActivityDate(ActivityType.workoutUpperBody, 
             DateTime.now().subtract(const Duration(days: 5)));
         
         final result = DegradationService.applyDegradation(user);
@@ -339,7 +339,7 @@ void main() {
         user.setStat(StatType.strength, 1.01); // Just above minimum
         
         // Set activity date to trigger maximum degradation
-        user.setLastActivityDate(ActivityType.workoutWeights, 
+        user.setLastActivityDate(ActivityType.workoutUpperBody, 
             DateTime.now().subtract(const Duration(days: 20)));
         
         final result = DegradationService.applyDegradation(user);

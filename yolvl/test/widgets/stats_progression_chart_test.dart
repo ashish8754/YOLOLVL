@@ -12,7 +12,7 @@ void main() {
       final activities = <ActivityLog>[
         ActivityLog.create(
           id: 'test1',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 60,
           statGains: {StatType.strength: 0.06, StatType.endurance: 0.04},
           expGained: 60,
@@ -63,7 +63,7 @@ void main() {
       final activities = <ActivityLog>[
         ActivityLog.create(
           id: 'test1',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 60,
           statGains: {StatType.strength: 0.06},
           expGained: 60,
@@ -71,7 +71,7 @@ void main() {
         ),
         ActivityLog.create(
           id: 'test2',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 30,
           statGains: {StatType.strength: 0.03},
           expGained: 30,

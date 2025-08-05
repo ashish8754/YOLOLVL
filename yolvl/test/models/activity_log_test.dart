@@ -11,7 +11,7 @@ void main() {
       testTimestamp = DateTime(2024, 1, 15, 10, 30);
       testActivity = ActivityLog(
         id: 'test_activity_123',
-        activityType: ActivityType.workoutWeights.name,
+        activityType: ActivityType.workoutUpperBody.name,
         durationMinutes: 60,
         timestamp: testTimestamp,
         statGains: {
@@ -26,7 +26,7 @@ void main() {
     group('Basic Properties', () {
       test('should create activity log with all properties', () {
         expect(testActivity.id, equals('test_activity_123'));
-        expect(testActivity.activityType, equals(ActivityType.workoutWeights.name));
+        expect(testActivity.activityType, equals(ActivityType.workoutUpperBody.name));
         expect(testActivity.durationMinutes, equals(60));
         expect(testActivity.timestamp, equals(testTimestamp));
         expect(testActivity.expGained, equals(60.0));
@@ -34,7 +34,7 @@ void main() {
       });
 
       test('should get activity type enum correctly', () {
-        expect(testActivity.activityTypeEnum, equals(ActivityType.workoutWeights));
+        expect(testActivity.activityTypeEnum, equals(ActivityType.workoutUpperBody));
       });
 
       test('should handle unknown activity type gracefully', () {
@@ -47,7 +47,7 @@ void main() {
           expGained: 30.0,
         );
         
-        expect(unknownActivity.activityTypeEnum, equals(ActivityType.workoutWeights));
+        expect(unknownActivity.activityTypeEnum, equals(ActivityType.workoutUpperBody));
       });
     });
 
@@ -92,10 +92,10 @@ void main() {
     });
 
     group('Data Migration Logic', () {
-      test('should calculate fallback stat gains for workout weights', () {
+      test('should calculate fallback stat gains for workout upper body', () {
         final activityWithoutGains = ActivityLog(
           id: 'test',
-          activityType: ActivityType.workoutWeights.name,
+          activityType: ActivityType.workoutUpperBody.name,
           durationMinutes: 60,
           timestamp: DateTime.now(),
           statGains: {},
@@ -105,7 +105,7 @@ void main() {
         final statGainsMap = activityWithoutGains.statGainsMap;
         
         expect(statGainsMap[StatType.strength], equals(0.06));
-        expect(statGainsMap[StatType.endurance], equals(0.04));
+        expect(statGainsMap[StatType.endurance], equals(0.03));
       });
 
       test('should calculate fallback stat gains for cardio workout', () {
@@ -251,7 +251,7 @@ void main() {
       test('should migrate stat gains data', () {
         final activityWithoutGains = ActivityLog(
           id: 'test',
-          activityType: ActivityType.workoutWeights.name,
+          activityType: ActivityType.workoutUpperBody.name,
           durationMinutes: 60,
           timestamp: DateTime.now(),
           statGains: {},
@@ -264,7 +264,7 @@ void main() {
         
         expect(activityWithoutGains.hasStoredStatGains, isTrue);
         expect(activityWithoutGains.statGains[StatType.strength.name], equals(0.06));
-        expect(activityWithoutGains.statGains[StatType.endurance.name], equals(0.04));
+        expect(activityWithoutGains.statGains[StatType.endurance.name], equals(0.03));
       });
 
       test('should not migrate if already has stat gains', () {
@@ -285,7 +285,7 @@ void main() {
         
         final activity = ActivityLog.create(
           id: 'factory_test',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 45,
           statGains: statGains,
           expGained: 45.0,
@@ -294,7 +294,7 @@ void main() {
         );
         
         expect(activity.id, equals('factory_test'));
-        expect(activity.activityTypeEnum, equals(ActivityType.workoutWeights));
+        expect(activity.activityTypeEnum, equals(ActivityType.workoutUpperBody));
         expect(activity.durationMinutes, equals(45));
         expect(activity.statGainsMap[StatType.strength], equals(0.08));
         expect(activity.statGainsMap[StatType.endurance], equals(0.05));
@@ -349,7 +349,7 @@ void main() {
         
         final mixedActivity = ActivityLog(
           id: 'test',
-          activityType: ActivityType.workoutWeights.name,
+          activityType: ActivityType.workoutUpperBody.name,
           durationMinutes: 90,
           timestamp: DateTime.now(),
           statGains: {},
@@ -384,22 +384,27 @@ void main() {
       });
 
       test('should check if activity is from this week', () {
+        final now = DateTime.now();
+        final daysFromStartOfWeek = now.weekday - 1; // Monday = 0, Sunday = 6
+        
+        // Create an activity from early this week (should be true)
         final thisWeekActivity = ActivityLog(
           id: 'test',
           activityType: ActivityType.meditation.name,
           durationMinutes: 30,
-          timestamp: DateTime.now().subtract(const Duration(days: 2)),
+          timestamp: now.subtract(Duration(days: daysFromStartOfWeek, hours: -1)), // Start of this week + 1 hour
           statGains: {},
           expGained: 30.0,
         );
         
         expect(thisWeekActivity.isThisWeek, isTrue);
         
+        // Create an activity from last week (should be false)
         final lastWeekActivity = ActivityLog(
           id: 'test',
           activityType: ActivityType.meditation.name,
           durationMinutes: 30,
-          timestamp: DateTime.now().subtract(const Duration(days: 10)),
+          timestamp: now.subtract(Duration(days: daysFromStartOfWeek + 7)), // One week before start of this week
           statGains: {},
           expGained: 30.0,
         );
@@ -427,7 +432,7 @@ void main() {
         final json = testActivity.toJson();
         
         expect(json['id'], equals('test_activity_123'));
-        expect(json['activityType'], equals(ActivityType.workoutWeights.name));
+        expect(json['activityType'], equals(ActivityType.workoutUpperBody.name));
         expect(json['durationMinutes'], equals(60));
         expect(json['timestamp'], equals(testTimestamp.toIso8601String()));
         expect(json['expGained'], equals(60.0));

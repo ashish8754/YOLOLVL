@@ -317,7 +317,7 @@ class _HunterRankDisplayState extends State<HunterRankDisplay>
                 context,
                 SoloLevelingTypography.systemNotification.copyWith(
                   fontSize: 14,
-                  color: Colors.black,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -329,7 +329,7 @@ class _HunterRankDisplayState extends State<HunterRankDisplay>
                   context,
                   SoloLevelingTypography.systemNotification.copyWith(
                     fontSize: 12,
-                    color: Colors.black,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -346,7 +346,7 @@ class _HunterRankDisplayState extends State<HunterRankDisplay>
               context,
               SoloLevelingTypography.systemNotification.copyWith(
                 fontSize: 12,
-                color: Colors.black,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -425,7 +425,7 @@ class _HunterRankDisplayState extends State<HunterRankDisplay>
                 context,
                 SoloLevelingTypography.systemNotification.copyWith(
                   fontSize: 14,
-                  color: Colors.black,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -436,7 +436,7 @@ class _HunterRankDisplayState extends State<HunterRankDisplay>
                 context,
                 SoloLevelingTypography.expDisplay.copyWith(
                   fontSize: 12,
-                  color: Colors.black,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -455,7 +455,7 @@ class _HunterRankDisplayState extends State<HunterRankDisplay>
                 context,
                 SoloLevelingTypography.systemNotification.copyWith(
                   fontSize: 12,
-                  color: Colors.black,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                   fontWeight: FontWeight.w500,
                 ),
               ),

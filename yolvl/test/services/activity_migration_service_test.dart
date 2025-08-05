@@ -70,7 +70,7 @@ void main() {
         // Add activity with stat gains (doesn't need migration)
         final activityWithGains = ActivityLog(
           id: 'with_gains',
-          activityType: ActivityType.workoutWeights.name,
+          activityType: ActivityType.workoutUpperBody.name,
           durationMinutes: 60,
           timestamp: DateTime.now(),
           statGains: {
@@ -103,7 +103,7 @@ void main() {
         // Add activities with and without stat gains
         final activityWithGains = ActivityLog(
           id: 'with_gains',
-          activityType: ActivityType.workoutWeights.name,
+          activityType: ActivityType.workoutUpperBody.name,
           durationMinutes: 60,
           timestamp: DateTime.now(),
           statGains: {StatType.strength.name: 0.06},
@@ -145,7 +145,7 @@ void main() {
       test('should migrate single activity successfully', () async {
         final activityWithoutGains = ActivityLog(
           id: 'test_activity',
-          activityType: ActivityType.workoutWeights.name,
+          activityType: ActivityType.workoutUpperBody.name,
           durationMinutes: 60,
           timestamp: DateTime.now(),
           statGains: {},
@@ -193,7 +193,7 @@ void main() {
         final activities = [
           ActivityLog(
             id: 'activity_1',
-            activityType: ActivityType.workoutWeights.name,
+            activityType: ActivityType.workoutUpperBody.name,
             durationMinutes: 60,
             timestamp: DateTime.now(),
             statGains: {},
@@ -240,7 +240,7 @@ void main() {
         // Add activity that already has stat gains
         final activityWithGains = ActivityLog(
           id: 'already_migrated',
-          activityType: ActivityType.workoutWeights.name,
+          activityType: ActivityType.workoutUpperBody.name,
           durationMinutes: 60,
           timestamp: DateTime.now(),
           statGains: {StatType.strength.name: 0.06},
@@ -269,7 +269,7 @@ void main() {
         // Add activity with stat gains (already migrated)
         final activityWithGains = ActivityLog(
           id: 'with_gains',
-          activityType: ActivityType.workoutWeights.name,
+          activityType: ActivityType.workoutUpperBody.name,
           durationMinutes: 60,
           timestamp: DateTime.now(),
           statGains: {StatType.strength.name: 0.06},

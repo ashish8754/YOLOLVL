@@ -147,7 +147,7 @@ void main() {
         
         // Set old activity date to trigger degradation
         user.setLastActivityDate(
-          ActivityType.workoutWeights, 
+          ActivityType.workoutUpperBody, 
           DateTime.now().subtract(const Duration(days: 5)),
         );
         await userRepository.updateUser(user);

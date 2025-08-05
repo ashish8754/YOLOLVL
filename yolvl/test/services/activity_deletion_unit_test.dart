@@ -32,7 +32,7 @@ void main() {
       final successResult = ActivityDeletionResult.success(
         deletedActivity: ActivityLog.create(
           id: 'test',
-          activityType: ActivityType.workoutWeights,
+          activityType: ActivityType.workoutUpperBody,
           durationMinutes: 60,
           statGains: {StatType.strength: 0.06},
           expGained: 60.0,

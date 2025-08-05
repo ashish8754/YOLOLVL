@@ -21,7 +21,7 @@ void main() {
     });
 
     test('should have default activity logging values', () {
-      expect(activityProvider.selectedActivityType, equals(ActivityType.workoutWeights));
+      expect(activityProvider.selectedActivityType, equals(ActivityType.workoutUpperBody));
       expect(activityProvider.selectedDuration, equals(60));
       expect(activityProvider.activityNotes, isEmpty);
       expect(activityProvider.gainPreview, isNull);
@@ -53,7 +53,7 @@ void main() {
       activityProvider.resetLoggingForm();
       
       // Check defaults are restored
-      expect(activityProvider.selectedActivityType, equals(ActivityType.workoutWeights));
+      expect(activityProvider.selectedActivityType, equals(ActivityType.workoutUpperBody));
       expect(activityProvider.selectedDuration, equals(60));
       expect(activityProvider.activityNotes, isEmpty);
       expect(activityProvider.gainPreview, isNull);
