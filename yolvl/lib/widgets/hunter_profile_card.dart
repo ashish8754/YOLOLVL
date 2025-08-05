@@ -854,44 +854,51 @@ class _HunterProfileCardState extends State<HunterProfileCard>
   }
 
   Widget _buildStatsGrid(User user) {
-    return GridView.count(
-      crossAxisCount: 3,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.2,
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      children: StatType.values.map((stat) {
-        final value = user.getStat(stat);
-        return _buildStatGridItem(stat, value);
-      }).toList(),
+    final stats = StatType.values;
+    
+    // Horizontal scrollable single row layout to prevent overflow completely
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: stats.map((stat) {
+          final value = user.getStat(stat);
+          return Padding(
+            padding: const EdgeInsets.only(right: 12), // Increased spacing
+            child: _buildMiniStatItem(stat, value),
+          );
+        }).toList(),
+      ),
     );
   }
 
-  Widget _buildStatGridItem(StatType stat, double value) {
+  Widget _buildMiniStatItem(StatType stat, double value) {
     return Container(
-      padding: const EdgeInsets.all(8),
+      width: 80, // Increased size for better visibility
+      height: 65, // Optimized height to prevent overflow
+      padding: const EdgeInsets.all(6), // Optimized for content fit
       decoration: BoxDecoration(
         color: stat.color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10), // Increased from 6
         border: Border.all(color: stat.color.withValues(alpha: 0.3), width: 1),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(stat.icon, color: stat.color, size: 20),
-          const SizedBox(height: 4),
+          Icon(stat.icon, color: stat.color, size: 18), // Increased from 12
+          const SizedBox(height: 2), // Reduced spacing to prevent overflow
           Text(
             value.toStringAsFixed(1),
-            style: SoloLevelingTypography.statValue.copyWith(
-              fontSize: 16,
+            style: TextStyle(
+              fontSize: 14, // Increased from 10
               color: stat.color,
+              fontWeight: FontWeight.bold,
             ),
+            overflow: TextOverflow.ellipsis,
           ),
           Text(
-            stat.displayName,
-            style: SoloLevelingTypography.statLabel.copyWith(
-              fontSize: 8,
+            stat.displayName.length > 6 ? stat.displayName.substring(0, 6) : stat.displayName,
+            style: TextStyle(
+              fontSize: 8, // Increased from 5
               color: SoloLevelingColors.silverMist,
             ),
             maxLines: 1,
@@ -901,6 +908,7 @@ class _HunterProfileCardState extends State<HunterProfileCard>
       ),
     );
   }
+
 
   Widget _buildDetailedProgression(User user, HunterRankData rankData) {
     final nextRank = _rankService.getNextRank(user.level);
@@ -1042,12 +1050,6 @@ class _HunterProfileCardState extends State<HunterProfileCard>
     }
   }
 
-  /// Get darker version of rank color for better contrast in light mode
-  Color _getDarkerRankColor(Color originalColor) {
-    // Convert to HSL and reduce lightness for better contrast
-    final hsl = HSLColor.fromColor(originalColor);
-    return hsl.withLightness((hsl.lightness * 0.3).clamp(0.0, 1.0)).toColor();
-  }
 }
 
 /// Display modes for the Hunter Profile Card

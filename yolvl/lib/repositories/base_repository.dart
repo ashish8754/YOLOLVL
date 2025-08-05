@@ -106,6 +106,24 @@ abstract class BaseRepository<T extends HiveObject> {
     }
   }
 
+  /// Check if repository is initialized
+  bool get isInitialized {
+    try {
+      return Hive.isBoxOpen(boxName);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Clear all data from the repository
+  Future<void> clearAll() async {
+    try {
+      await box.clear();
+    } catch (e) {
+      throw RepositoryException('Failed to clear all data: $e');
+    }
+  }
+
   /// Validate entity before save (override in subclasses)
   bool validateEntity(T entity) {
     return true;

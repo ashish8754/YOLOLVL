@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'dart:math' as math;
 
@@ -8,6 +7,7 @@ import 'activity_logging_screen.dart';
 import 'stats_progression_screen.dart';
 import 'achievements_screen.dart';
 import 'settings_screen.dart';
+import 'user_profile_screen.dart';
 import '../services/activity_service.dart';
 import '../services/app_lifecycle_service.dart';
 import '../providers/user_provider.dart';
@@ -174,16 +174,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final selectedFontSize = math.min(textScaler.scale(baseFontSize), 14.0); // Cap at 14
     final unselectedFontSize = math.min(textScaler.scale(baseFontSize * 0.85), 12.0); // Cap at 12
     
-    // Ensure minimum touch target size for accessibility
-    final minTouchTarget = 48.0;
     final notchMargin = math.max(8.0, mediaQuery.padding.bottom * 0.1);
     
     // Calculate required height based on content with more generous padding
     final iconSize = 16.0; // Fixed smaller icon size to prevent overflow
     final adjustedSelectedFontSize = math.min(selectedFontSize, 10.0); // Even stricter cap
     final adjustedUnselectedFontSize = math.min(unselectedFontSize, 8.0); // Even stricter cap
-    final requiredHeight = iconSize + adjustedSelectedFontSize + 16.0; // icon + text + minimal padding
-    final bottomAppBarHeight = math.max(kBottomNavigationBarHeight + 8, requiredHeight + 8);
     
     return BottomAppBar(
       shape: const CircularNotchedRectangle(),
@@ -342,6 +338,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       }
     }
   }
+
 }
 
 /// Dashboard screen content without the scaffold (to be used in navigation)
@@ -445,7 +442,9 @@ class _DashboardScreenContentState extends State<DashboardScreenContent> {
               semanticLabel: 'Hunter Profile',
             ),
             onPressed: () {
-              // TODO: Navigate to profile screen
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const UserProfileScreen()),
+              );
             },
             tooltip: 'Hunter Profile',
           ),

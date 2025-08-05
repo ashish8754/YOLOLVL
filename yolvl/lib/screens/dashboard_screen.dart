@@ -12,6 +12,7 @@ import '../widgets/level_up_overlay.dart';
 import '../services/activity_service.dart';
 import 'activity_logging_screen.dart';
 import 'achievements_screen.dart';
+import 'user_profile_screen.dart';
 
 /// Main dashboard screen showing user progress and stats
 class DashboardScreen extends StatefulWidget {
@@ -73,9 +74,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           actions: [
             IconButton(
               icon: const Icon(Icons.person),
-              onPressed: () {
-                // TODO: Navigate to profile screen
-              },
+              onPressed: () => _navigateToUserProfile(),
+              tooltip: 'Hunter Profile',
             ),
           ],
         ),
@@ -271,20 +271,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _navigateToProfile() {
-    // TODO: Navigate to detailed profile screen
-    // For now, show a simple dialog with profile options
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Hunter Profile'),
-        content: const Text('Profile management coming soon!'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const UserProfileScreen()),
+    );
+  }
+
+  void _navigateToUserProfile() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const UserProfileScreen()),
     );
   }
 
