@@ -128,4 +128,7 @@ void main() {
       
       final result = InfiniteStatsValidator.validateForChart(invalidStats);
       expect(result.isValid, false);
-      expect(result.message, i
+      expect(result.message, isNotEmpty);
+    });
+  });
+}

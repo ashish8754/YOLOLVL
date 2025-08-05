@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import '../theme/solo_leveling_icons.dart';
 
 part 'enums.g.dart';
 
@@ -81,8 +82,13 @@ enum ActivityType {
     }
   }
 
-  /// Get icon for the activity type
+  /// Get Solo Leveling themed icon for the activity type
   IconData get icon {
+    return SoloLevelingIcons.getQuestIcon(this);
+  }
+  
+  /// Get the original Material icon for backward compatibility
+  IconData get materialIcon {
     switch (this) {
       case ActivityType.workoutWeights:
         return Icons.fitness_center;
@@ -91,19 +97,19 @@ enum ActivityType {
       case ActivityType.workoutYoga:
         return Icons.self_improvement;
       case ActivityType.studySerious:
-        return Icons.school;
+        return Icons.auto_stories;
       case ActivityType.studyCasual:
         return Icons.menu_book;
       case ActivityType.meditation:
-        return Icons.spa;
+        return Icons.psychology;
       case ActivityType.socializing:
-        return Icons.people;
+        return Icons.groups;
       case ActivityType.quitBadHabit:
         return Icons.block;
       case ActivityType.sleepTracking:
         return Icons.bedtime;
       case ActivityType.dietHealthy:
-        return Icons.restaurant;
+        return Icons.eco;
     }
   }
 
@@ -173,8 +179,13 @@ enum StatType {
     }
   }
 
-  /// Get emoji icon for the stat type
-  String get icon {
+  /// Get Solo Leveling themed icon for the stat type
+  IconData get icon {
+    return SoloLevelingIcons.getStatIcon(this);
+  }
+  
+  /// Get emoji icon for the stat type (for display purposes)
+  String get emojiIcon {
     switch (this) {
       case StatType.strength:
         return '💪';
@@ -346,21 +357,26 @@ enum AchievementType {
     }
   }
 
-  /// Get icon for the achievement type
+  /// Get Solo Leveling themed icon for the achievement type
   IconData get icon {
+    return SoloLevelingIcons.getAchievementIcon(this);
+  }
+  
+  /// Get the original Material icon for backward compatibility
+  IconData get materialIcon {
     switch (this) {
       case AchievementType.firstActivity:
-        return Icons.play_arrow;
+        return Icons.play_circle;
       case AchievementType.streak7Days:
         return Icons.local_fire_department;
       case AchievementType.streak30Days:
         return Icons.whatshot;
       case AchievementType.level5Reached:
-        return Icons.star;
+        return Icons.star_outline;
       case AchievementType.level10Reached:
-        return Icons.star_border;
+        return Icons.star;
       case AchievementType.level25Reached:
-        return Icons.stars;
+        return Icons.auto_awesome;
       case AchievementType.totalActivities50:
         return Icons.trending_up;
       case AchievementType.totalActivities100:
@@ -370,9 +386,9 @@ enum AchievementType {
       case AchievementType.workoutWarrior:
         return Icons.fitness_center;
       case AchievementType.studyScholar:
-        return Icons.school;
+        return Icons.auto_stories;
       case AchievementType.wellRounded:
-        return Icons.balance;
+        return Icons.psychology;
     }
   }
 

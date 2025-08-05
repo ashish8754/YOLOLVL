@@ -14,11 +14,13 @@ import '../providers/user_provider.dart';
 import '../providers/activity_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/achievement_provider.dart';
-import '../widgets/level_exp_display.dart';
+import '../widgets/hunter_rank_display.dart';
 import '../widgets/stats_overview_chart.dart';
 import '../widgets/daily_summary_widget.dart';
 import '../widgets/animated_fab.dart';
 import '../utils/page_transitions.dart';
+import '../theme/solo_leveling_icons.dart';
+import '../widgets/solo_leveling_icon.dart';
 
 /// Main navigation screen with responsive layout and optimized FAB positioning
 /// 
@@ -217,29 +219,54 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
           unselectedFontSize: adjustedUnselectedFontSize,
           // Ensure proper icon size for accessibility
           iconSize: iconSize,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
+            icon: SoloLevelingIconFactory.forNavigation(
+              SoloLevelingIcons.navDashboard,
+              size: iconSize,
+              isActive: _currentIndex == 0,
+              semanticLabel: 'Navigate to Dashboard',
+            ),
             label: 'Dashboard',
             tooltip: 'Navigate to Dashboard',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.history),
+            icon: SoloLevelingIconFactory.forNavigation(
+              SoloLevelingIcons.navHistory,
+              size: iconSize,
+              isActive: _currentIndex == 1,
+              semanticLabel: 'View Quest Journal',
+            ),
             label: 'History',
-            tooltip: 'View Activity History',
+            tooltip: 'View Quest Journal',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.show_chart),
+            icon: SoloLevelingIconFactory.forNavigation(
+              SoloLevelingIcons.navStats,
+              size: iconSize,
+              isActive: _currentIndex == 2,
+              semanticLabel: 'View Statistics',
+            ),
             label: 'Stats',
             tooltip: 'View Statistics',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.star),
+            icon: SoloLevelingIconFactory.forNavigation(
+              SoloLevelingIcons.navAchievements,
+              size: iconSize,
+              isActive: _currentIndex == 3,
+              semanticLabel: 'View Achievements',
+            ),
             label: 'Achievements',
             tooltip: 'View Achievements',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
+            icon: SoloLevelingIconFactory.forNavigation(
+              SoloLevelingIcons.navSettings,
+              size: iconSize,
+              isActive: _currentIndex == 4,
+              semanticLabel: 'Open Settings',
+            ),
             label: 'Settings',
             tooltip: 'Open Settings',
           ),
@@ -305,8 +332,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
               onPressed: _navigateToActivityLogging,
               icon: Icons.add,
               tooltip: hasActivitiesToday 
-                  ? 'Log Activity' 
-                  : 'Log Activity - No activities logged today',
+                  ? 'Start Quest' 
+                  : 'Start Quest - No quests completed today',
               showPulse: !hasActivitiesToday,
             ),
           ),
@@ -408,10 +435,15 @@ class _DashboardScreenContentState extends State<DashboardScreenContent> {
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.person),
+            icon: SoloLevelingIconFactory.forNavigation(
+              SoloLevelingIcons.navProfile,
+              size: 24.0,
+              semanticLabel: 'Hunter Profile',
+            ),
             onPressed: () {
               // TODO: Navigate to profile screen
             },
+            tooltip: 'Hunter Profile',
           ),
         ],
       ),
@@ -428,10 +460,12 @@ class _DashboardScreenContentState extends State<DashboardScreenContent> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.error_outline,
+                  SoloLevelingIcon(
+                    icon: SoloLevelingIcons.notificationError,
                     size: 64,
                     color: Theme.of(context).colorScheme.error,
+                    hasGlow: true,
+                    semanticLabel: 'Error loading data',
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -478,7 +512,7 @@ class _DashboardScreenContentState extends State<DashboardScreenContent> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const LevelExpDisplay(),
+                  const HunterRankDisplay(),
                   const SizedBox(height: 24),
                   const StatsOverviewChart(),
                   const SizedBox(height: 24),

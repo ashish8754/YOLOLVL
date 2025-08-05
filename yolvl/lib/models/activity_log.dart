@@ -118,6 +118,16 @@ class ActivityLog extends HiveObject {
     );
   }
 
+  /// Get duration as Duration object for compatibility
+  Duration get duration {
+    return Duration(minutes: durationMinutes);
+  }
+
+  /// Get start time for compatibility (alias for timestamp)
+  DateTime get startTime {
+    return timestamp;
+  }
+
   /// Get stat gains as Map with StatType keys and double values with migration support
   /// 
   /// This getter provides access to the stat gains that were applied when this activity

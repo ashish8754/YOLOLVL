@@ -7,8 +7,10 @@ import 'providers/user_provider.dart';
 import 'providers/activity_provider.dart';
 import 'providers/settings_provider.dart';
 import 'providers/achievement_provider.dart';
-import 'screens/main_navigation_screen.dart';
+import 'providers/daily_login_provider.dart';
+import 'screens/app_wrapper_screen.dart';
 import 'screens/onboarding_screen.dart';
+import 'theme/solo_leveling_theme.dart';
 
 void main() async {
   // Ensure Flutter binding is initialized
@@ -34,13 +36,14 @@ class YolvlApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ActivityProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
         ChangeNotifierProvider(create: (_) => AchievementProvider()),
+        ChangeNotifierProvider(create: (_) => DailyLoginProvider()),
       ],
       child: Consumer<SettingsProvider>(
         builder: (context, settingsProvider, child) {
           return MaterialApp(
             title: 'YOLVL - Solo Leveling Life',
-            theme: _buildLightTheme(),
-            darkTheme: _buildDarkTheme(),
+            theme: SoloLevelingTheme.buildLightTheme(),
+            darkTheme: SoloLevelingTheme.buildDarkTheme(),
             themeMode: settingsProvider.themeMode,
             home: HighContrastTheme(
               child: const AppInitializer(),
@@ -64,41 +67,8 @@ class YolvlApp extends StatelessWidget {
     );
   }
 
-  ThemeData _buildDarkTheme() {
-    return ThemeData(
-      // Dark fantasy theme colors
-      colorScheme: const ColorScheme.dark(
-        surface: Color(0xFF0D1117), // Deep dark blue-black
-        surfaceContainer: Color(0xFF161B22), // Slightly lighter dark
-        primary: Color(0xFF238636), // Hunter green for stats/progress
-        secondary: Color(0xFF1F6FEB), // Electric blue for EXP/level
-        error: Color(0xFFF85149), // Warning red for degradation
-        onSurface: Color(0xFFF0F6FC), // Near white text
-        onPrimary: Color(0xFFF0F6FC), // Near white text
-        onSecondary: Color(0xFFF0F6FC), // Near white text
-      ),
-      useMaterial3: true,
-      fontFamily: 'Roboto',
-    );
-  }
-
-  ThemeData _buildLightTheme() {
-    return ThemeData(
-      // Light theme colors
-      colorScheme: const ColorScheme.light(
-        surface: Color(0xFFFFFFFF), // White
-        surfaceContainer: Color(0xFFF6F8FA), // Light gray
-        primary: Color(0xFF2DA44E), // Green
-        secondary: Color(0xFF0969DA), // Blue
-        error: Color(0xFFCF222E), // Red
-        onSurface: Color(0xFF24292F), // Dark text
-        onPrimary: Color(0xFFFFFFFF), // White text
-        onSecondary: Color(0xFFFFFFFF), // White text
-      ),
-      useMaterial3: true,
-      fontFamily: 'Roboto',
-    );
-  }
+  // Theme methods removed - now using SoloLevelingTheme class
+  // This provides better organization and more comprehensive theming
 }
 
 /// Widget that handles app initialization and routing to onboarding or main app
@@ -123,6 +93,7 @@ class _AppInitializerState extends State<AppInitializer> {
   Future<void> _initializeApp() async {
     final userProvider = context.read<UserProvider>();
     final settingsProvider = context.read<SettingsProvider>();
+    final dailyLoginProvider = context.read<DailyLoginProvider>();
     
     try {
       // Initialize settings first
@@ -130,6 +101,9 @@ class _AppInitializerState extends State<AppInitializer> {
       
       // Initialize user data
       await userProvider.initializeApp();
+      
+      // Initialize daily login system
+      await dailyLoginProvider.initialize();
       
       setState(() {
         _isInitialized = true;
@@ -151,26 +125,45 @@ class _AppInitializerState extends State<AppInitializer> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.auto_awesome,
-                size: 80,
-                color: Theme.of(context).colorScheme.primary,
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  gradient: SoloLevelingGradients.hunterProgress,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: SoloLevelingColors.electricBlue.withValues(alpha: 0.3),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.auto_awesome,
+                  size: 40,
+                  color: Colors.white,
+                ),
               ),
               const SizedBox(height: 24),
               Text(
                 'Solo Leveling',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary,
+                style: SoloLevelingTypography.hunterTitle.copyWith(
+                  fontSize: 36,
+                  shadows: [
+                    Shadow(
+                      color: SoloLevelingColors.electricBlue.withValues(alpha: 0.5),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),
               Text(
                 'Level up your life',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                style: SoloLevelingTypography.hunterSubtitle.copyWith(
+                  color: SoloLevelingColors.silverMist,
                 ),
               ),
               const SizedBox(height: 48),
@@ -240,8 +233,8 @@ class _AppInitializerState extends State<AppInitializer> {
           return const OnboardingScreen();
         }
 
-        // User is ready, show main app
-        return const MainNavigationScreen();
+        // User is ready, show main app with daily login integration
+        return const AppWrapperScreen();
       },
     );
   }

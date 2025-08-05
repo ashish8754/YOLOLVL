@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
-import '../utils/accessibility_helper.dart';
+import '../utils/accessibility_helper.dart' as accessibility;
+import 'hunter_rank_display.dart';
 
 /// Widget displaying user level and EXP progress with smooth animations
+/// 
+/// **DEPRECATED**: This widget has been superseded by HunterRankDisplay.
+/// It now serves as a backward compatibility layer that forwards to the new Hunter Rank system.
+/// For new implementations, use HunterRankDisplay directly.
 class LevelExpDisplay extends StatefulWidget {
-  const LevelExpDisplay({super.key});
+  final bool useHunterRankSystem;
+  
+  const LevelExpDisplay({
+    super.key,
+    this.useHunterRankSystem = true, // Default to new system
+  });
 
   @override
   State<LevelExpDisplay> createState() => _LevelExpDisplayState();
@@ -57,6 +67,12 @@ class _LevelExpDisplayState extends State<LevelExpDisplay>
 
   @override
   Widget build(BuildContext context) {
+    // Forward to new Hunter Rank system if enabled (default behavior)
+    if (widget.useHunterRankSystem) {
+      return const HunterRankDisplay();
+    }
+    
+    // Legacy implementation for backward compatibility
     return Consumer<UserProvider>(
       builder: (context, userProvider, child) {
         final level = userProvider.level;
@@ -72,7 +88,7 @@ class _LevelExpDisplayState extends State<LevelExpDisplay>
 
         return Semantics(
           label: AccessibilityHelper.getLevelSemanticLabel(level, currentEXP, expThreshold),
-          child: ResponsiveLayout(
+          child: accessibility.ResponsiveLayout(
             mobile: _buildMobileLayout(context, level, currentEXP, expThreshold, expProgress, userName, userProvider),
             tablet: _buildTabletLayout(context, level, currentEXP, expThreshold, expProgress, userName, userProvider),
           ),

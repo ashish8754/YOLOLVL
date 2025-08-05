@@ -5,6 +5,7 @@ import '../models/user.dart';
 import '../models/activity_log.dart';
 import '../models/settings.dart';
 import '../models/achievement.dart';
+import '../models/daily_reward.dart';
 
 /// Configuration class for Hive local storage
 class HiveConfig {
@@ -12,6 +13,7 @@ class HiveConfig {
   static const String activityBoxName = 'activity_box';
   static const String settingsBoxName = 'settings_box';
   static const String achievementBoxName = 'achievement_box';
+  static const String dailyRewardBoxName = 'daily_reward_box';
 
   /// Initialize Hive with proper configuration
   static Future<void> initialize() async {
@@ -31,12 +33,15 @@ class HiveConfig {
     Hive.registerAdapter(ActivityTypeAdapter());
     Hive.registerAdapter(StatTypeAdapter());
     Hive.registerAdapter(AchievementTypeAdapter());
+    Hive.registerAdapter(RewardTypeAdapter());
     
     // Register model adapters
     Hive.registerAdapter(UserAdapter());
     Hive.registerAdapter(ActivityLogAdapter());
     Hive.registerAdapter(SettingsAdapter());
     Hive.registerAdapter(AchievementAdapter());
+    Hive.registerAdapter(RewardItemAdapter());
+    Hive.registerAdapter(DailyRewardAdapter());
   }
 
   /// Open all required Hive boxes
@@ -46,6 +51,7 @@ class HiveConfig {
       await Hive.openBox<ActivityLog>(activityBoxName);
       await Hive.openBox<Settings>(settingsBoxName);
       await Hive.openBox<Achievement>(achievementBoxName);
+      await Hive.openBox(dailyRewardBoxName);
     } catch (e) {
       throw Exception('Failed to open Hive boxes: $e');
     }
@@ -86,6 +92,9 @@ class HiveConfig {
       }
       if (Hive.isBoxOpen(achievementBoxName)) {
         await Hive.box<Achievement>(achievementBoxName).clear();
+      }
+      if (Hive.isBoxOpen(dailyRewardBoxName)) {
+        await Hive.box(dailyRewardBoxName).clear();
       }
     } catch (e) {
       // Ignore errors during cleanup

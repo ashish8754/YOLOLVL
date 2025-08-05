@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/activity_provider.dart';
 import '../models/enums.dart';
-import '../widgets/activity_history_list.dart';
+import '../widgets/quest_log.dart';
 import '../widgets/activity_filter_widget.dart';
 
 /// Screen for viewing activity history with filtering and pagination
@@ -87,7 +87,7 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: const Text('Activity History'),
+        title: const Text('Quest Journal'),
         backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
         elevation: 0,
         actions: [
@@ -176,7 +176,7 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No activities found',
+                          'No quests found',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -186,8 +186,8 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
                         const SizedBox(height: 8),
                         Text(
                           _hasActiveFilters() 
-                              ? 'Try adjusting your filters'
-                              : 'Start logging activities to see them here',
+                              ? 'Try adjusting your quest filters'
+                              : 'Start completing quests to see them here',
                           style: TextStyle(
                             fontSize: 14,
                             color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
@@ -201,12 +201,12 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
 
                 return RefreshIndicator(
                   onRefresh: _loadInitialData,
-                  child: ActivityHistoryList(
-                    activities: activityProvider.activityHistory,
+                  child: QuestLog(
+                    quests: activityProvider.activityHistory,
                     scrollController: _scrollController,
                     isLoadingMore: activityProvider.isLoading && _currentPage > 0,
                     hasMoreData: _hasMoreData,
-                    onDeleteActivity: _onDeleteActivity,
+                    onDeleteQuest: _onDeleteActivity,
                     isDeleting: activityProvider.isLoading,
                   ),
                 );
@@ -272,7 +272,7 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Text('Deleting activity...'),
+              const Text('Reversing quest...'),
             ],
           ),
           duration: const Duration(seconds: 3),
@@ -299,7 +299,7 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
                 size: 20,
               ),
               const SizedBox(width: 8),
-              const Text('Activity deleted and stats reversed'),
+              const Text('Quest reversed and stats restored'),
             ],
           ),
           backgroundColor: Colors.green,
@@ -321,7 +321,7 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  activityProvider.errorMessage ?? 'Failed to delete activity',
+                  activityProvider.errorMessage ?? 'Failed to reverse quest',
                 ),
               ),
             ],

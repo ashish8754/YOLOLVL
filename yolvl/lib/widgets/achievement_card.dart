@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/achievement.dart';
+import 'solo_leveling_icon.dart';
+import '../theme/solo_leveling_icons.dart';
 
 /// Widget displaying an unlocked achievement
 class AchievementCard extends StatelessWidget {
@@ -50,9 +52,8 @@ class AchievementCard extends StatelessWidget {
                     width: 2,
                   ),
                 ),
-                child: Icon(
-                  achievementType.icon,
-                  color: achievementType.color,
+                child: SoloLevelingIconFactory.forAchievement(
+                  achievementType,
                   size: 28,
                 ),
               ),

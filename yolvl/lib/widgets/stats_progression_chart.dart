@@ -139,7 +139,7 @@ class _StatsProgressionChartState extends State<StatsProgressionChart> {
           Row(
             children: [
               Text(
-                widget.statType.icon,
+                widget.statType.emojiIcon,
                 style: const TextStyle(fontSize: 24),
               ),
               const SizedBox(width: 12),

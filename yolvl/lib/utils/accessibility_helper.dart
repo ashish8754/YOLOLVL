@@ -29,6 +29,30 @@ class AccessibilityHelper {
     return 'Level $level. Experience: ${exp.toStringAsFixed(0)} out of ${threshold.toStringAsFixed(0)}. $progress percent to next level.';
   }
 
+  /// Get semantic label for hunter rank information
+  static String getHunterRankSemanticLabel(String rank, String rankName, int level, double expProgress, int? levelsToNextRank) {
+    final expPercent = (expProgress * 100).toStringAsFixed(1);
+    String label = '$rankName, Level $level. Experience progress: $expPercent percent to next level.';
+    
+    if (levelsToNextRank != null && levelsToNextRank > 0) {
+      label += ' $levelsToNextRank levels remaining to next hunter rank.';
+    } else if (levelsToNextRank == 0) {
+      label += ' Ready for hunter rank promotion.';
+    }
+    
+    return label;
+  }
+
+  /// Get semantic label for rank progression
+  static String getRankProgressSemanticLabel(String currentRank, String? nextRank, double progress) {
+    final percentage = (progress * 100).toStringAsFixed(1);
+    if (nextRank != null) {
+      return 'Hunter rank progress: $percentage percent from $currentRank-Rank to $nextRank-Rank';
+    } else {
+      return 'Hunter rank progress: Maximum rank $currentRank achieved';
+    }
+  }
+
   /// Create accessible button with proper touch target
   static Widget createAccessibleButton({
     required Widget child,

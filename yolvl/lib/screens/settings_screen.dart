@@ -215,9 +215,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         final customValue = settingsProvider.getCustomStatIncrement(activityType, statType);
         
         return ListTile(
-          leading: Text(
+          leading: Icon(
             statType.icon,
-            style: const TextStyle(fontSize: 20),
+            size: 20,
           ),
           title: Text(statType.displayName),
           subtitle: Text('Default: +${defaultValue.toStringAsFixed(3)}/hr'),

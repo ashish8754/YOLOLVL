@@ -61,9 +61,9 @@ class ActivityFilterWidget extends StatelessWidget {
           
           const SizedBox(height: 16),
           
-          // Activity Type Filter
+          // Quest Type Filter
           Text(
-            'Activity Type',
+            'Quest Type',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -83,12 +83,12 @@ class ActivityFilterWidget extends StatelessWidget {
             child: DropdownButtonHideUnderline(
               child: DropdownButton<ActivityType?>(
                 value: selectedActivityType,
-                hint: const Text('All Activities'),
+                hint: const Text('All Quests'),
                 isExpanded: true,
                 items: [
                   const DropdownMenuItem<ActivityType?>(
                     value: null,
-                    child: Text('All Activities'),
+                    child: Text('All Quests'),
                   ),
                   ...ActivityType.values.map((type) => DropdownMenuItem<ActivityType?>(
                     value: type,

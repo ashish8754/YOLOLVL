@@ -60,6 +60,10 @@ dependencies:
   
   # File picker
   file_picker: ^8.0.0
+  
+  # Solo Leveling Theme Dependencies
+  flutter_animate: ^4.5.0
+  # Note: Using custom glassmorphism implementation instead of external package for better control
 
 dev_dependencies:
   flutter_test:

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/achievement.dart';
+import '../theme/solo_leveling_icons.dart';
+import 'solo_leveling_icon.dart';
 
 /// Widget displaying achievement progress for locked achievements
 class AchievementProgressCard extends StatelessWidget {
@@ -45,11 +47,8 @@ class AchievementProgressCard extends StatelessWidget {
                         width: 2,
                       ),
                     ),
-                    child: Icon(
-                      achievementType.icon,
-                      color: isCompleted 
-                          ? achievementType.color
-                          : Theme.of(context).colorScheme.outline,
+                    child: SoloLevelingIconFactory.forAchievement(
+                      achievementType,
                       size: 24,
                     ),
                   ),

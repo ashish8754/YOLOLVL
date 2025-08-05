@@ -69,7 +69,7 @@ class _StatsProgressionScreenState extends State<StatsProgressionScreen> {
                 value: stat,
                 child: Row(
                   children: [
-                    Text(stat.icon, style: const TextStyle(fontSize: 16)),
+                    Icon(stat.icon, size: 16),
                     const SizedBox(width: 8),
                     Text(stat.displayName),
                   ],
