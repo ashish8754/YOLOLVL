@@ -664,7 +664,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (parts.length == 2) {
           final activityType = ActivityType.values.firstWhere(
             (type) => type.name == parts[0],
-            orElse: () => ActivityType.workoutWeights,
+            orElse: () => ActivityType.workoutUpperBody,
           );
           final statType = StatType.values.firstWhere(
             (type) => type.name == parts[1],

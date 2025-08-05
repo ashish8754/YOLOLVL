@@ -125,7 +125,7 @@ class UserRepository extends BaseRepository<User> {
       for (final entry in user.lastActivityDates.entries) {
         final activityType = ActivityType.values.firstWhere(
           (type) => type.name == entry.key,
-          orElse: () => ActivityType.workoutWeights,
+          orElse: () => ActivityType.workoutUpperBody,
         );
         result[activityType] = entry.value;
       }

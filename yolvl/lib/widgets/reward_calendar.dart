@@ -70,6 +70,7 @@ class _RewardCalendarState extends State<RewardCalendar>
         return GlassmorphismEffects.glassmorphicContainer(
           blur: 15,
           opacity: 0.1,
+          context: context,
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
@@ -525,6 +526,7 @@ class RewardDetailsDialog extends StatelessWidget {
       child: GlassmorphismEffects.glassmorphicContainer(
         blur: 20,
         opacity: 0.1,
+        context: context,
         child: Container(
           padding: const EdgeInsets.all(24),
           constraints: const BoxConstraints(maxWidth: 400),

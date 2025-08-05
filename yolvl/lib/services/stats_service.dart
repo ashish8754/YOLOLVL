@@ -40,7 +40,7 @@ import '../models/enums.dart';
 /// Usage Examples:
 /// ```dart
 /// // Calculate stat gains
-/// final gains = StatsService.calculateStatGains(ActivityType.workoutWeights, 60);
+/// final gains = StatsService.calculateStatGains(ActivityType.workoutUpperBody, 60);
 /// 
 /// // Validate infinite stats
 /// final validation = StatsService.validateInfiniteStats(userStats);
@@ -50,7 +50,7 @@ import '../models/enums.dart';
 /// 
 /// // Calculate stat reversals for deletion
 /// final reversals = StatsService.calculateStatReversals(
-///   ActivityType.workoutWeights, 60, storedGains
+///   ActivityType.workoutUpperBody, 60, storedGains
 /// );
 /// ```
 class StatsService {
@@ -67,9 +67,12 @@ class StatsService {
   /// - No ceiling limits - stats can grow infinitely
   /// 
   /// **Activity Type Mappings:**
-  /// - Weight Training: +0.06 Strength/hr, +0.04 Endurance/hr
+  /// - Upper Body Training: +0.06 Strength/hr, +0.03 Endurance/hr
+  /// - Lower Body Training: +0.05 Strength/hr, +0.04 Agility/hr, +0.04 Endurance/hr
+  /// - Core Training: +0.05 Strength/hr, +0.05 Endurance/hr, +0.02 Focus/hr
   /// - Cardio: +0.06 Agility/hr, +0.04 Endurance/hr
   /// - Yoga: +0.05 Agility/hr, +0.03 Focus/hr
+  /// - Walking: +0.03 Agility/hr, +0.02 Endurance/hr
   /// - Serious Study: +0.06 Intelligence/hr, +0.04 Focus/hr
   /// - Casual Study: +0.04 Intelligence/hr, +0.03 Charisma/hr
   /// - Meditation: +0.05 Focus/hr
@@ -85,8 +88,8 @@ class StatsService {
   /// 
   /// Example:
   /// ```dart
-  /// final gains = StatsService.calculateStatGains(ActivityType.workoutWeights, 90);
-  /// // Returns: {StatType.strength: 0.09, StatType.endurance: 0.06}
+  /// final gains = StatsService.calculateStatGains(ActivityType.workoutUpperBody, 90);
+  /// // Returns: {StatType.strength: 0.09, StatType.endurance: 0.045}
   /// ```
   static Map<StatType, double> calculateStatGains(ActivityType activityType, int durationMinutes) {
     if (durationMinutes < 0) {
@@ -97,9 +100,21 @@ class StatsService {
     final durationHours = durationMinutes / 60.0;
 
     switch (activityType) {
-      case ActivityType.workoutWeights:
+      case ActivityType.workoutUpperBody:
         gains[StatType.strength] = 0.06 * durationHours;
+        gains[StatType.endurance] = 0.03 * durationHours;
+        break;
+
+      case ActivityType.workoutLowerBody:
+        gains[StatType.strength] = 0.05 * durationHours;
+        gains[StatType.agility] = 0.04 * durationHours;
         gains[StatType.endurance] = 0.04 * durationHours;
+        break;
+
+      case ActivityType.workoutCore:
+        gains[StatType.strength] = 0.05 * durationHours;
+        gains[StatType.endurance] = 0.05 * durationHours;
+        gains[StatType.focus] = 0.02 * durationHours;
         break;
 
       case ActivityType.workoutCardio:
@@ -110,6 +125,11 @@ class StatsService {
       case ActivityType.workoutYoga:
         gains[StatType.agility] = 0.05 * durationHours;
         gains[StatType.focus] = 0.03 * durationHours;
+        break;
+
+      case ActivityType.walking:
+        gains[StatType.agility] = 0.03 * durationHours;
+        gains[StatType.endurance] = 0.02 * durationHours;
         break;
 
       case ActivityType.studySerious:
@@ -517,12 +537,12 @@ class StatsService {
   /// ```dart
   /// // Using stored gains (preferred)
   /// final reversals = StatsService.calculateStatReversals(
-  ///   ActivityType.workoutWeights, 60, storedGains
+  ///   ActivityType.workoutUpperBody, 60, storedGains
   /// );
   /// 
   /// // Fallback for legacy activity
   /// final reversals = StatsService.calculateStatReversals(
-  ///   ActivityType.workoutWeights, 60, null
+  ///   ActivityType.workoutUpperBody, 60, null
   /// );
   /// ```
   static Map<StatType, double> calculateStatReversals(

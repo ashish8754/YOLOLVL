@@ -309,12 +309,18 @@ class NotificationService {
   /// Get display name for activity type
   String _getActivityDisplayName(ActivityType activityType) {
     switch (activityType) {
-      case ActivityType.workoutWeights:
-        return 'Weight Training';
+      case ActivityType.workoutUpperBody:
+        return 'Upper Body Training';
+      case ActivityType.workoutLowerBody:
+        return 'Lower Body Training';
+      case ActivityType.workoutCore:
+        return 'Core Training';
       case ActivityType.workoutCardio:
         return 'Cardio';
       case ActivityType.workoutYoga:
         return 'Yoga';
+      case ActivityType.walking:
+        return 'Walking';
       case ActivityType.studySerious:
         return 'Serious Study';
       case ActivityType.studyCasual:

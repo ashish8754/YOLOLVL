@@ -567,6 +567,7 @@ class _QuestCompletionAnimationState extends State<QuestCompletionAnimation>
               child: Center(
                 child: GlassmorphismEffects.achievementNotification(
                   padding: const EdgeInsets.all(20),
+                  context: context,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [

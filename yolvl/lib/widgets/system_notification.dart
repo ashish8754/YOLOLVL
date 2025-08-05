@@ -414,6 +414,7 @@ class _SystemNotificationState extends State<SystemNotification>
           onTap: widget.data.onTap,
           child: GlassmorphismEffects.systemPanel(
             isActive: _isImportantNotification(),
+            context: context,
             child: AnimatedBuilder(
               animation: _glowAnimation,
               builder: (context, child) {

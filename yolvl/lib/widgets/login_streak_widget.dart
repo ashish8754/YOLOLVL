@@ -96,6 +96,7 @@ class _LoginStreakWidgetState extends State<LoginStreakWidget>
       child: GlassmorphismEffects.glassmorphicContainer(
         blur: 15,
         opacity: 0.1,
+        context: context,
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(

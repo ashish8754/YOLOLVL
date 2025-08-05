@@ -14,62 +14,77 @@ class ActivityTypeAdapter extends TypeAdapter<ActivityType> {
   ActivityType read(BinaryReader reader) {
     switch (reader.readByte()) {
       case 0:
-        return ActivityType.workoutWeights;
+        return ActivityType.workoutUpperBody;
       case 1:
-        return ActivityType.workoutCardio;
+        return ActivityType.workoutLowerBody;
       case 2:
-        return ActivityType.workoutYoga;
+        return ActivityType.workoutCore;
       case 3:
-        return ActivityType.studySerious;
+        return ActivityType.workoutCardio;
       case 4:
-        return ActivityType.studyCasual;
+        return ActivityType.workoutYoga;
       case 5:
-        return ActivityType.meditation;
+        return ActivityType.walking;
       case 6:
-        return ActivityType.socializing;
+        return ActivityType.studySerious;
       case 7:
-        return ActivityType.quitBadHabit;
+        return ActivityType.studyCasual;
       case 8:
-        return ActivityType.sleepTracking;
+        return ActivityType.meditation;
       case 9:
+        return ActivityType.socializing;
+      case 10:
+        return ActivityType.quitBadHabit;
+      case 11:
+        return ActivityType.sleepTracking;
+      case 12:
         return ActivityType.dietHealthy;
       default:
-        return ActivityType.workoutWeights;
+        return ActivityType.workoutUpperBody;
     }
   }
 
   @override
   void write(BinaryWriter writer, ActivityType obj) {
     switch (obj) {
-      case ActivityType.workoutWeights:
+      case ActivityType.workoutUpperBody:
         writer.writeByte(0);
         break;
-      case ActivityType.workoutCardio:
+      case ActivityType.workoutLowerBody:
         writer.writeByte(1);
         break;
-      case ActivityType.workoutYoga:
+      case ActivityType.workoutCore:
         writer.writeByte(2);
         break;
-      case ActivityType.studySerious:
+      case ActivityType.workoutCardio:
         writer.writeByte(3);
         break;
-      case ActivityType.studyCasual:
+      case ActivityType.workoutYoga:
         writer.writeByte(4);
         break;
-      case ActivityType.meditation:
+      case ActivityType.walking:
         writer.writeByte(5);
         break;
-      case ActivityType.socializing:
+      case ActivityType.studySerious:
         writer.writeByte(6);
         break;
-      case ActivityType.quitBadHabit:
+      case ActivityType.studyCasual:
         writer.writeByte(7);
         break;
-      case ActivityType.sleepTracking:
+      case ActivityType.meditation:
         writer.writeByte(8);
         break;
-      case ActivityType.dietHealthy:
+      case ActivityType.socializing:
         writer.writeByte(9);
+        break;
+      case ActivityType.quitBadHabit:
+        writer.writeByte(10);
+        break;
+      case ActivityType.sleepTracking:
+        writer.writeByte(11);
+        break;
+      case ActivityType.dietHealthy:
+        writer.writeByte(12);
         break;
     }
   }

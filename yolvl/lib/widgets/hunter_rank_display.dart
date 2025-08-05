@@ -153,6 +153,7 @@ class _HunterRankDisplayState extends State<HunterRankDisplay>
   Widget _buildCompactLayout(BuildContext context, HunterRankData rank, int level, String userName, double expProgress) {
     return GlassmorphismEffects.glassmorphicContainer(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      context: context,
       child: Row(
         children: [
           HunterRankBadge(
@@ -314,7 +315,11 @@ class _HunterRankDisplayState extends State<HunterRankDisplay>
               'Hunter Rank Progress',
               style: AccessibilityHelper.getAccessibleTextStyle(
                 context,
-                SoloLevelingTypography.systemNotification.copyWith(fontSize: 14),
+                SoloLevelingTypography.systemNotification.copyWith(
+                  fontSize: 14,
+                  color: Colors.black,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             if (nextRank != null)
@@ -324,7 +329,8 @@ class _HunterRankDisplayState extends State<HunterRankDisplay>
                   context,
                   SoloLevelingTypography.systemNotification.copyWith(
                     fontSize: 12,
-                    color: nextRank.color,
+                    color: Colors.black,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -340,7 +346,8 @@ class _HunterRankDisplayState extends State<HunterRankDisplay>
               context,
               SoloLevelingTypography.systemNotification.copyWith(
                 fontSize: 12,
-                color: SoloLevelingColors.silverMist,
+                color: Colors.black,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -416,14 +423,22 @@ class _HunterRankDisplayState extends State<HunterRankDisplay>
               'Experience Points',
               style: AccessibilityHelper.getAccessibleTextStyle(
                 context,
-                SoloLevelingTypography.systemNotification.copyWith(fontSize: 14),
+                SoloLevelingTypography.systemNotification.copyWith(
+                  fontSize: 14,
+                  color: Colors.black,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             Text(
               '${currentEXP.toStringAsFixed(0)} / ${expThreshold.toStringAsFixed(0)}',
               style: AccessibilityHelper.getAccessibleTextStyle(
                 context,
-                SoloLevelingTypography.expDisplay.copyWith(fontSize: 12),
+                SoloLevelingTypography.expDisplay.copyWith(
+                  fontSize: 12,
+                  color: Colors.black,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
@@ -440,7 +455,8 @@ class _HunterRankDisplayState extends State<HunterRankDisplay>
                 context,
                 SoloLevelingTypography.systemNotification.copyWith(
                   fontSize: 12,
-                  color: SoloLevelingColors.silverMist,
+                  color: Colors.black,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),

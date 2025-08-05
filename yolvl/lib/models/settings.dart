@@ -75,7 +75,7 @@ class Settings extends HiveObject {
     return enabledActivities
         .map((name) => ActivityType.values.firstWhere(
               (type) => type.name == name,
-              orElse: () => ActivityType.workoutWeights,
+              orElse: () => ActivityType.workoutUpperBody,
             ))
         .toList();
   }

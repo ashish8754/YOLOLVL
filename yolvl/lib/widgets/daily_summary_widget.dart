@@ -294,12 +294,18 @@ class DailySummaryWidget extends StatelessWidget {
 extension ActivityTypeIcon on ActivityType {
   String get icon {
     switch (this) {
-      case ActivityType.workoutWeights:
+      case ActivityType.workoutUpperBody:
+        return '💪';
+      case ActivityType.workoutLowerBody:
+        return '🦵';
+      case ActivityType.workoutCore:
         return '🏋️';
       case ActivityType.workoutCardio:
         return '🏃';
       case ActivityType.workoutYoga:
         return '🧘';
+      case ActivityType.walking:
+        return '🚶';
       case ActivityType.studySerious:
         return '📚';
       case ActivityType.studyCasual:

@@ -291,8 +291,8 @@ class AppLifecycleService extends ChangeNotifier with WidgetsBindingObserver {
       switch (statType) {
         case StatType.strength:
         case StatType.endurance:
-          if (!activityTypes.contains(ActivityType.workoutWeights)) {
-            activityTypes.add(ActivityType.workoutWeights);
+          if (!activityTypes.contains(ActivityType.workoutUpperBody)) {
+            activityTypes.add(ActivityType.workoutUpperBody);
           }
           if (!activityTypes.contains(ActivityType.workoutCardio)) {
             activityTypes.add(ActivityType.workoutCardio);

@@ -151,6 +151,7 @@ class _HunterStatsPanelState extends State<HunterStatsPanel>
       margin: widget.margin ?? const EdgeInsets.all(16),
       child: GlassmorphismEffects.systemPanel(
         isActive: _selectedStat != null,
+        context: context,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -663,6 +664,7 @@ class _HunterStatsPanelState extends State<HunterStatsPanel>
       height: widget.height ?? 300,
       margin: widget.margin ?? const EdgeInsets.all(16),
       child: GlassmorphismEffects.systemPanel(
+        context: context,
         child: const Center(
           child: CircularProgressIndicator(
             color: SoloLevelingColors.electricBlue,

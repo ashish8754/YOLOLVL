@@ -66,21 +66,13 @@ class _HunterProfileCardState extends State<HunterProfileCard>
       vsync: this,
     );
 
-    _glowAnimation = Tween<double>(
-      begin: 0.3,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _glowController,
-      curve: Curves.easeInOut,
-    ));
+    _glowAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(
+      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
+    );
 
-    _dataUpdateAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _dataUpdateController,
-      curve: Curves.elasticOut,
-    ));
+    _dataUpdateAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _dataUpdateController, curve: Curves.elasticOut),
+    );
 
     // Start continuous glow animation
     _glowController.repeat(reverse: true);
@@ -104,7 +96,7 @@ class _HunterProfileCardState extends State<HunterProfileCard>
         }
 
         final rankData = _rankService.getRankForLevel(user.level);
-        
+
         return AnimatedBuilder(
           animation: _dataUpdateAnimation,
           builder: (context, child) {
@@ -127,6 +119,7 @@ class _HunterProfileCardState extends State<HunterProfileCard>
         margin: widget.margin ?? const EdgeInsets.all(16),
         child: GlassmorphismEffects.hunterPanel(
           glowEffect: rankData.hasGlowEffect,
+          context: context, // Pass context for theme awareness
           child: _buildCardContent(user, rankData),
         ),
       ),
@@ -150,9 +143,9 @@ class _HunterProfileCardState extends State<HunterProfileCard>
         // Avatar and Rank Badge
         if (widget.showAvatar || widget.showRankBadge)
           _buildAvatarSection(user, rankData, size: 50),
-        
+
         const SizedBox(width: 16),
-        
+
         // Basic Info
         Expanded(
           child: Column(
@@ -169,7 +162,7 @@ class _HunterProfileCardState extends State<HunterProfileCard>
             ],
           ),
         ),
-        
+
         // Level Display
         _buildLevelDisplay(user, size: 24),
       ],
@@ -179,36 +172,37 @@ class _HunterProfileCardState extends State<HunterProfileCard>
   Widget _buildExpandedContent(User user, HunterRankData rankData) {
     return Column(
       children: [
-        // Header Section
+        // Header Section with improved left alignment
         Row(
           children: [
             if (widget.showAvatar || widget.showRankBadge)
               _buildAvatarSection(user, rankData, size: 70),
-            
-            const SizedBox(width: 20),
-            
+
+            const SizedBox(width: 12), // Reduced spacing for better alignment
+
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHunterName(user, size: 24),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4), // Reduced spacing
                   _buildHunterTitle(rankData, size: 14),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6), // Reduced spacing
                   _buildHunterStats(user),
                 ],
               ),
             ),
-            
+
+            const SizedBox(width: 8), // Add small spacing before level
             _buildLevelDisplay(user, size: 32),
           ],
         ),
-        
+
         if (widget.showLevelProgress) ...[
           const SizedBox(height: 20),
           _buildLevelProgressExpanded(user),
         ],
-        
+
         if (widget.showStats) ...[
           const SizedBox(height: 16),
           _buildQuickStatsOverview(user),
@@ -222,17 +216,16 @@ class _HunterProfileCardState extends State<HunterProfileCard>
       children: [
         // Header with full info
         _buildDetailedHeader(user, rankData),
-        
+
         const Divider(
           color: SoloLevelingColors.electricBlue,
           thickness: 1,
           height: 32,
         ),
-        
+
         // Detailed stats and progression
-        if (widget.showStats)
-          _buildDetailedStats(user),
-        
+        if (widget.showStats) _buildDetailedStats(user),
+
         if (widget.showLevelProgress) ...[
           const SizedBox(height: 16),
           _buildDetailedProgression(user, rankData),
@@ -241,7 +234,13 @@ class _HunterProfileCardState extends State<HunterProfileCard>
     );
   }
 
-  Widget _buildAvatarSection(User user, HunterRankData rankData, {required double size}) {
+  Widget _buildAvatarSection(
+    User user,
+    HunterRankData rankData, {
+    required double size,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -254,13 +253,20 @@ class _HunterProfileCardState extends State<HunterProfileCard>
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                rankData.lightColor.withValues(alpha: 0.3),
-                rankData.color.withValues(alpha: 0.5),
-              ],
+              colors: isDark
+                  ? [
+                      rankData.lightColor.withValues(alpha: 0.3),
+                      rankData.color.withValues(alpha: 0.5),
+                    ]
+                  : [
+                      rankData.color.withValues(alpha: 0.1),
+                      rankData.color.withValues(alpha: 0.2),
+                    ],
             ),
             border: Border.all(
-              color: rankData.lightColor.withValues(alpha: 0.6),
+              color: isDark
+                  ? rankData.lightColor.withValues(alpha: 0.6)
+                  : rankData.color.withValues(alpha: 0.4),
               width: 2,
             ),
           ),
@@ -275,7 +281,7 @@ class _HunterProfileCardState extends State<HunterProfileCard>
                 : _buildDefaultAvatar(size * 0.6),
           ),
         ),
-        
+
         // Rank Badge Overlay
         if (widget.showRankBadge)
           Positioned(
@@ -287,7 +293,9 @@ class _HunterProfileCardState extends State<HunterProfileCard>
                 return HunterRankBadge(
                   rank: rankData.rank,
                   size: HunterRankBadgeSize.small,
-                  glowIntensity: rankData.hasGlowEffect ? _glowAnimation.value : 0.0,
+                  glowIntensity: rankData.hasGlowEffect
+                      ? _glowAnimation.value
+                      : 0.0,
                   showLevelText: false,
                   enableAnimations: true,
                 );
@@ -299,27 +307,44 @@ class _HunterProfileCardState extends State<HunterProfileCard>
   }
 
   Widget _buildDefaultAvatar(double size) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: SoloLevelingColors.shadowDepth,
+        color: isDark
+            ? SoloLevelingColors.shadowDepth
+            : const Color(0xFFE5E7EB),
       ),
       child: Icon(
         Icons.person,
-        color: SoloLevelingColors.silverMist,
+        color: isDark ? SoloLevelingColors.silverMist : const Color(0xFF6B7280),
         size: size * 0.6,
       ),
     );
   }
 
   Widget _buildHunterName(User user, {required double size}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Text(
       user.name,
       style: SoloLevelingTypography.hunterTitle.copyWith(
         fontSize: size,
-        color: SoloLevelingColors.ghostWhite,
+        color: isDark
+            ? SoloLevelingColors.ghostWhite
+            : const Color(0xFF0F172A), // Much darker text for better contrast
+        fontWeight: FontWeight.bold,
+        shadows: isDark
+            ? null
+            : [
+                Shadow(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  offset: const Offset(0, 1),
+                  blurRadius: 2,
+                ),
+              ],
       ),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
@@ -327,11 +352,25 @@ class _HunterProfileCardState extends State<HunterProfileCard>
   }
 
   Widget _buildHunterTitle(HunterRankData rankData, {required double size}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final lightModeColor = _getDarkerRankColor(rankData.color);
     return Text(
       rankData.name,
       style: SoloLevelingTypography.hunterSubtitle.copyWith(
         fontSize: size,
-        color: rankData.lightColor,
+        color: isDark
+            ? rankData.lightColor
+            : lightModeColor,
+        fontWeight: FontWeight.w600,
+        shadows: isDark
+            ? null
+            : [
+                Shadow(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  offset: const Offset(0, 1),
+                  blurRadius: 1,
+                ),
+              ],
       ),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
@@ -339,20 +378,45 @@ class _HunterProfileCardState extends State<HunterProfileCard>
   }
 
   Widget _buildLevelDisplay(User user, {required double size}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: [
         Text(
           'LV',
           style: SoloLevelingTypography.statLabel.copyWith(
             fontSize: size * 0.4,
-            color: SoloLevelingColors.silverMist,
+            color: isDark
+                ? SoloLevelingColors.silverMist
+                : const Color(0xFF374151), // Much darker gray for better contrast
+            fontWeight: FontWeight.w600,
+            shadows: isDark
+                ? null
+                : [
+                    Shadow(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      offset: const Offset(0, 1),
+                      blurRadius: 2,
+                    ),
+                  ],
           ),
         ),
         Text(
           '${user.level}',
           style: SoloLevelingTypography.levelDisplay.copyWith(
             fontSize: size,
-            color: SoloLevelingColors.electricBlue,
+            color: isDark
+                ? SoloLevelingColors.electricBlue
+                : const Color(0xFF1E3A8A), // Even darker blue for maximum contrast
+            fontWeight: FontWeight.bold,
+            shadows: isDark
+                ? null
+                : [
+                    Shadow(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      offset: const Offset(0, 1),
+                      blurRadius: 2,
+                    ),
+                  ],
           ),
         ),
       ],
@@ -364,37 +428,72 @@ class _HunterProfileCardState extends State<HunterProfileCard>
       children: [
         _buildStatChip('LV ${user.level}', SoloLevelingColors.electricBlue),
         const SizedBox(width: 8),
-        _buildStatChip('${user.currentEXP.toInt()} EXP', SoloLevelingColors.hunterGreen),
+        _buildStatChip(
+          '${user.currentEXP.toInt()} EXP',
+          SoloLevelingColors.hunterGreen,
+        ),
       ],
     );
   }
 
   Widget _buildStatChip(String text, Color color) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final chipColor = isDark ? color : _getLightModeChipColor(color);
+    final backgroundColor = isDark
+        ? color.withValues(alpha: 0.2)
+        : Colors.white.withValues(alpha: 0.9); // More opaque background
+    final borderColor = isDark
+        ? color.withValues(alpha: 0.5)
+        : chipColor.withValues(alpha: 0.6); // Stronger border
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.2),
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withValues(alpha: 0.5),
-          width: 1,
-        ),
+        border: Border.all(color: borderColor, width: 1.5),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  offset: const Offset(0, 1),
+                  blurRadius: 2,
+                ),
+              ],
       ),
       child: Text(
         text,
         style: SoloLevelingTypography.systemNotification.copyWith(
           fontSize: 10,
-          color: color,
+          color: chipColor,
           fontWeight: FontWeight.bold,
         ),
       ),
     );
   }
 
+  Color _getLightModeChipColor(Color darkColor) {
+    // Map dark mode colors to appropriate light mode colors with maximum contrast
+    if (darkColor == SoloLevelingColors.electricBlue) {
+      return const Color(0xFF1E3A8A); // Even darker blue
+    } else if (darkColor == SoloLevelingColors.hunterGreen) {
+      return const Color(0xFF047857); // Darker green
+    }
+    return darkColor; // Fallback to original color
+  }
+
+  Color _getDarkerRankColor(Color rankColor) {
+    // Create much darker versions of rank colors for better contrast
+    final hslColor = HSLColor.fromColor(rankColor);
+    return hslColor.withLightness((hslColor.lightness * 0.3).clamp(0.0, 1.0)).toColor();
+  }
+
   Widget _buildLevelProgressCompact(User user) {
     final progress = user.expProgress;
     final nextLevelExp = user.expThreshold;
-    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -405,14 +504,38 @@ class _HunterProfileCardState extends State<HunterProfileCard>
               'EXP',
               style: SoloLevelingTypography.statLabel.copyWith(
                 fontSize: 10,
-                color: SoloLevelingColors.silverMist,
+                color: isDark
+                    ? SoloLevelingColors.silverMist
+                    : const Color(0xFF374151), // Darker for better contrast
+                fontWeight: FontWeight.w600,
+                shadows: isDark
+                    ? null
+                    : [
+                        Shadow(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          offset: const Offset(0, 1),
+                          blurRadius: 1,
+                        ),
+                      ],
               ),
             ),
             Text(
               '${user.currentEXP.toInt()}/${nextLevelExp.toInt()}',
               style: SoloLevelingTypography.statLabel.copyWith(
                 fontSize: 10,
-                color: SoloLevelingColors.hunterGreen,
+                color: isDark
+                    ? SoloLevelingColors.hunterGreen
+                    : const Color(0xFF047857), // Darker green
+                fontWeight: FontWeight.bold,
+                shadows: isDark
+                    ? null
+                    : [
+                        Shadow(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          offset: const Offset(0, 1),
+                          blurRadius: 1,
+                        ),
+                      ],
               ),
             ),
           ],
@@ -420,8 +543,12 @@ class _HunterProfileCardState extends State<HunterProfileCard>
         const SizedBox(height: 4),
         LinearProgressIndicator(
           value: progress,
-          backgroundColor: SoloLevelingColors.shadowGray.withValues(alpha: 0.3),
-          valueColor: AlwaysStoppedAnimation<Color>(SoloLevelingColors.hunterGreen),
+          backgroundColor: isDark
+              ? SoloLevelingColors.shadowGray.withValues(alpha: 0.3)
+              : const Color(0xFFE5E7EB),
+          valueColor: AlwaysStoppedAnimation<Color>(
+            isDark ? SoloLevelingColors.hunterGreen : const Color(0xFF059669),
+          ),
           minHeight: 6,
         ),
       ],
@@ -431,14 +558,19 @@ class _HunterProfileCardState extends State<HunterProfileCard>
   Widget _buildLevelProgressExpanded(User user) {
     final progress = user.expProgress;
     final nextLevelExp = user.expThreshold;
-    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: SoloLevelingColors.shadowDepth.withValues(alpha: 0.5),
+        color: isDark
+            ? SoloLevelingColors.shadowDepth.withValues(alpha: 0.5)
+            : const Color(0xFFF8FAFC), // Light gray background for light mode
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: SoloLevelingColors.hunterGreen.withValues(alpha: 0.3),
+          color: isDark
+              ? SoloLevelingColors.hunterGreen.withValues(alpha: 0.3)
+              : const Color(0xFF059669).withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -451,15 +583,38 @@ class _HunterProfileCardState extends State<HunterProfileCard>
                 'EXP Progress',
                 style: SoloLevelingTypography.systemNotification.copyWith(
                   fontSize: 14,
-                  color: SoloLevelingColors.ghostWhite,
+                  color: isDark
+                      ? SoloLevelingColors.ghostWhite
+                      : const Color(0xFF0F172A), // Much darker
+                  fontWeight: FontWeight.bold,
+                  shadows: isDark
+                      ? null
+                      : [
+                          Shadow(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            offset: const Offset(0, 1),
+                            blurRadius: 2,
+                          ),
+                        ],
                 ),
               ),
               Text(
                 '${(progress * 100).toInt()}%',
                 style: SoloLevelingTypography.systemNotification.copyWith(
                   fontSize: 14,
-                  color: SoloLevelingColors.hunterGreen,
+                  color: isDark
+                      ? SoloLevelingColors.hunterGreen
+                      : const Color(0xFF047857), // Darker green
                   fontWeight: FontWeight.bold,
+                  shadows: isDark
+                      ? null
+                      : [
+                          Shadow(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            offset: const Offset(0, 1),
+                            blurRadius: 1,
+                          ),
+                        ],
                 ),
               ),
             ],
@@ -469,8 +624,14 @@ class _HunterProfileCardState extends State<HunterProfileCard>
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: SoloLevelingColors.shadowGray.withValues(alpha: 0.3),
-              valueColor: AlwaysStoppedAnimation<Color>(SoloLevelingColors.hunterGreen),
+              backgroundColor: isDark
+                  ? SoloLevelingColors.shadowGray.withValues(alpha: 0.3)
+                  : const Color(0xFFE5E7EB),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                isDark
+                    ? SoloLevelingColors.hunterGreen
+                    : const Color(0xFF059669),
+              ),
               minHeight: 12,
             ),
           ),
@@ -482,14 +643,38 @@ class _HunterProfileCardState extends State<HunterProfileCard>
                 '${user.currentEXP.toInt()} EXP',
                 style: SoloLevelingTypography.expDisplay.copyWith(
                   fontSize: 12,
-                  color: SoloLevelingColors.silverMist,
+                  color: isDark
+                      ? SoloLevelingColors.silverMist
+                      : const Color(0xFF374151), // Much darker
+                  fontWeight: FontWeight.w600,
+                  shadows: isDark
+                      ? null
+                      : [
+                          Shadow(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            offset: const Offset(0, 1),
+                            blurRadius: 1,
+                          ),
+                        ],
                 ),
               ),
               Text(
                 '${nextLevelExp.toInt()} EXP',
                 style: SoloLevelingTypography.expDisplay.copyWith(
                   fontSize: 12,
-                  color: SoloLevelingColors.silverMist,
+                  color: isDark
+                      ? SoloLevelingColors.silverMist
+                      : const Color(0xFF374151), // Much darker
+                  fontWeight: FontWeight.w600,
+                  shadows: isDark
+                      ? null
+                      : [
+                          Shadow(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            offset: const Offset(0, 1),
+                            blurRadius: 1,
+                          ),
+                        ],
                 ),
               ),
             ],
@@ -501,14 +686,19 @@ class _HunterProfileCardState extends State<HunterProfileCard>
 
   Widget _buildQuickStatsOverview(User user) {
     final topStats = _getTopStats(user);
-    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: SoloLevelingColors.shadowDepth.withValues(alpha: 0.3),
+        color: isDark
+            ? SoloLevelingColors.shadowDepth.withValues(alpha: 0.3)
+            : const Color(0xFFF1F5F9), // Light blue-gray for light mode
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: SoloLevelingColors.electricBlue.withValues(alpha: 0.2),
+          color: isDark
+              ? SoloLevelingColors.electricBlue.withValues(alpha: 0.2)
+              : const Color(0xFF1E40AF).withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -520,30 +710,67 @@ class _HunterProfileCardState extends State<HunterProfileCard>
   }
 
   Widget _buildQuickStatItem(MapEntry<StatType, double> stat) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final statColor = isDark
+        ? stat.key.color
+        : _getLightModeStatColor(stat.key.color);
+
     return Column(
       children: [
-        Icon(
-          stat.key.icon,
-          color: stat.key.color,
-          size: 16,
-        ),
+        Icon(stat.key.icon, color: statColor, size: 16),
         const SizedBox(height: 4),
         Text(
           stat.value.toStringAsFixed(1),
           style: SoloLevelingTypography.statValue.copyWith(
             fontSize: 14,
-            color: stat.key.color,
+            color: statColor,
           ),
         ),
         Text(
           stat.key.displayName,
           style: SoloLevelingTypography.statLabel.copyWith(
             fontSize: 8,
-            color: SoloLevelingColors.silverMist,
+            color: isDark
+                ? SoloLevelingColors.silverMist
+                : const Color(0xFF374151), // Darker for better contrast
+            fontWeight: FontWeight.w600,
+            shadows: isDark
+                ? null
+                : [
+                    Shadow(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      offset: const Offset(0, 1),
+                      blurRadius: 1,
+                    ),
+                  ],
           ),
         ),
       ],
     );
+  }
+
+  Color _getLightModeStatColor(Color darkColor) {
+    // Map dark mode stat colors to appropriate light mode colors with better contrast
+    if (darkColor == const Color(0xFFE03131)) {
+      // Strength red
+      return const Color(0xFFDC2626);
+    } else if (darkColor == const Color(0xFF2B8A3E)) {
+      // Agility green
+      return const Color(0xFF059669);
+    } else if (darkColor == const Color(0xFFE8590C)) {
+      // Endurance orange
+      return const Color(0xFFEA580C);
+    } else if (darkColor == const Color(0xFF1864AB)) {
+      // Intelligence blue
+      return const Color(0xFF1E40AF);
+    } else if (darkColor == const Color(0xFF7048E8)) {
+      // Focus purple
+      return const Color(0xFF7C3AED);
+    } else if (darkColor == const Color(0xFFE67700)) {
+      // Charisma yellow
+      return const Color(0xFFD97706);
+    }
+    return darkColor; // Fallback to original color
   }
 
   Widget _buildDetailedHeader(User user, HunterRankData rankData) {
@@ -647,19 +874,12 @@ class _HunterProfileCardState extends State<HunterProfileCard>
       decoration: BoxDecoration(
         color: stat.color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: stat.color.withValues(alpha: 0.3),
-          width: 1,
-        ),
+        border: Border.all(color: stat.color.withValues(alpha: 0.3), width: 1),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            stat.icon,
-            color: stat.color,
-            size: 20,
-          ),
+          Icon(stat.icon, color: stat.color, size: 20),
           const SizedBox(height: 4),
           Text(
             value.toStringAsFixed(1),
@@ -684,8 +904,10 @@ class _HunterProfileCardState extends State<HunterProfileCard>
 
   Widget _buildDetailedProgression(User user, HunterRankData rankData) {
     final nextRank = _rankService.getNextRank(user.level);
-    final levelsToNextRank = nextRank != null ? _rankService.getLevelsToNextRank(user.level) : 0;
-    
+    final levelsToNextRank = nextRank != null
+        ? _rankService.getLevelsToNextRank(user.level)
+        : 0;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -778,7 +1000,9 @@ class _HunterProfileCardState extends State<HunterProfileCard>
   }
 
   List<MapEntry<StatType, double>> _getTopStats(User user) {
-    final stats = StatType.values.map((stat) => MapEntry(stat, user.getStat(stat))).toList();
+    final stats = StatType.values
+        .map((stat) => MapEntry(stat, user.getStat(stat)))
+        .toList();
     stats.sort((a, b) => b.value.compareTo(a.value));
     return stats.take(3).toList();
   }
@@ -786,7 +1010,7 @@ class _HunterProfileCardState extends State<HunterProfileCard>
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
-    
+
     if (difference.inDays > 0) {
       return '${difference.inDays}d ago';
     } else if (difference.inHours > 0) {
@@ -817,11 +1041,18 @@ class _HunterProfileCardState extends State<HunterProfileCard>
         return 400;
     }
   }
+
+  /// Get darker version of rank color for better contrast in light mode
+  Color _getDarkerRankColor(Color originalColor) {
+    // Convert to HSL and reduce lightness for better contrast
+    final hsl = HSLColor.fromColor(originalColor);
+    return hsl.withLightness((hsl.lightness * 0.3).clamp(0.0, 1.0)).toColor();
+  }
 }
 
 /// Display modes for the Hunter Profile Card
 enum HunterProfileDisplayMode {
-  compact,    // Minimal info, single row layout
-  expanded,   // Standard info with stats overview
-  detailed,   // Full info with detailed stats and progression
+  compact, // Minimal info, single row layout
+  expanded, // Standard info with stats overview
+  detailed, // Full info with detailed stats and progression
 }

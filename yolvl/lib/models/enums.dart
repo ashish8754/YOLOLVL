@@ -8,44 +8,59 @@ part 'enums.g.dart';
 @HiveType(typeId: 0)
 enum ActivityType {
   @HiveField(0)
-  workoutWeights,
+  workoutUpperBody,
   
   @HiveField(1)
-  workoutCardio,
+  workoutLowerBody,
   
   @HiveField(2)
-  workoutYoga,
+  workoutCore,
   
   @HiveField(3)
-  studySerious,
+  workoutCardio,
   
   @HiveField(4)
-  studyCasual,
+  workoutYoga,
   
   @HiveField(5)
-  meditation,
+  walking,
   
   @HiveField(6)
-  socializing,
+  studySerious,
   
   @HiveField(7)
-  quitBadHabit,
+  studyCasual,
   
   @HiveField(8)
-  sleepTracking,
+  meditation,
   
   @HiveField(9)
+  socializing,
+  
+  @HiveField(10)
+  quitBadHabit,
+  
+  @HiveField(11)
+  sleepTracking,
+  
+  @HiveField(12)
   dietHealthy;
 
   /// Get display name for the activity type
   String get displayName {
     switch (this) {
-      case ActivityType.workoutWeights:
-        return 'Workout - Weights';
+      case ActivityType.workoutUpperBody:
+        return 'Upper Body Training';
+      case ActivityType.workoutLowerBody:
+        return 'Lower Body Training';
+      case ActivityType.workoutCore:
+        return 'Core Training';
       case ActivityType.workoutCardio:
-        return 'Workout - Cardio';
+        return 'Cardio Workout';
       case ActivityType.workoutYoga:
-        return 'Workout - Yoga/Flexibility';
+        return 'Yoga/Flexibility';
+      case ActivityType.walking:
+        return 'Walking';
       case ActivityType.studySerious:
         return 'Study - Serious';
       case ActivityType.studyCasual:
@@ -66,9 +81,12 @@ enum ActivityType {
   /// Get category for degradation purposes
   ActivityCategory get category {
     switch (this) {
-      case ActivityType.workoutWeights:
+      case ActivityType.workoutUpperBody:
+      case ActivityType.workoutLowerBody:
+      case ActivityType.workoutCore:
       case ActivityType.workoutCardio:
       case ActivityType.workoutYoga:
+      case ActivityType.walking:
         return ActivityCategory.workout;
       case ActivityType.studySerious:
       case ActivityType.studyCasual:
@@ -90,12 +108,18 @@ enum ActivityType {
   /// Get the original Material icon for backward compatibility
   IconData get materialIcon {
     switch (this) {
-      case ActivityType.workoutWeights:
+      case ActivityType.workoutUpperBody:
         return Icons.fitness_center;
+      case ActivityType.workoutLowerBody:
+        return Icons.airline_seat_legroom_extra;
+      case ActivityType.workoutCore:
+        return Icons.account_box;
       case ActivityType.workoutCardio:
         return Icons.directions_run;
       case ActivityType.workoutYoga:
         return Icons.self_improvement;
+      case ActivityType.walking:
+        return Icons.directions_walk;
       case ActivityType.studySerious:
         return Icons.auto_stories;
       case ActivityType.studyCasual:
@@ -116,12 +140,18 @@ enum ActivityType {
   /// Get color for the activity type
   Color get color {
     switch (this) {
-      case ActivityType.workoutWeights:
+      case ActivityType.workoutUpperBody:
         return const Color(0xFFE74C3C); // Red
+      case ActivityType.workoutLowerBody:
+        return const Color(0xFFD32F2F); // Dark Red
+      case ActivityType.workoutCore:
+        return const Color(0xFFFF5722); // Deep Orange
       case ActivityType.workoutCardio:
         return const Color(0xFFE67E22); // Orange
       case ActivityType.workoutYoga:
         return const Color(0xFF9B59B6); // Purple
+      case ActivityType.walking:
+        return const Color(0xFF2E7D32); // Green
       case ActivityType.studySerious:
         return const Color(0xFF3498DB); // Blue
       case ActivityType.studyCasual:

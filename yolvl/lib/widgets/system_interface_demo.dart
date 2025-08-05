@@ -355,6 +355,7 @@ class _SystemInterfaceDemoState extends State<SystemInterfaceDemo> {
   Widget _buildServiceInfoSection() {
     return GlassmorphismEffects.systemPanel(
       isActive: true,
+      context: context,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -22,7 +22,7 @@ class _ActivityLoggingScreenState extends State<ActivityLoggingScreen> {
   final _durationController = TextEditingController(text: '60');
   final _notesController = TextEditingController();
   
-  ActivityType _selectedActivityType = ActivityType.workoutWeights;
+  ActivityType _selectedActivityType = ActivityType.workoutUpperBody;
   int _selectedDuration = 60;
   ActivityGainPreview? _gainPreview;
   bool _isLogging = false;

@@ -76,7 +76,7 @@ class ActivityProvider extends ChangeNotifier {
   String? _successMessage;
   
   // Activity logging state
-  ActivityType _selectedActivityType = ActivityType.workoutWeights;
+  ActivityType _selectedActivityType = ActivityType.workoutUpperBody;
   int _selectedDuration = 60;
   String _activityNotes = '';
   ActivityGainPreview? _gainPreview;
@@ -441,7 +441,7 @@ class ActivityProvider extends ChangeNotifier {
 
   /// Reset logging form to defaults
   void resetLoggingForm() {
-    _selectedActivityType = ActivityType.workoutWeights;
+    _selectedActivityType = ActivityType.workoutUpperBody;
     _selectedDuration = 60;
     _activityNotes = '';
     _gainPreview = null;
@@ -609,12 +609,18 @@ class ActivityProvider extends ChangeNotifier {
   /// Get display name for activity type
   String _getActivityDisplayName(ActivityType activityType) {
     switch (activityType) {
-      case ActivityType.workoutWeights:
-        return 'Weight Training';
+      case ActivityType.workoutUpperBody:
+        return 'Upper Body Training';
+      case ActivityType.workoutLowerBody:
+        return 'Lower Body Training';
+      case ActivityType.workoutCore:
+        return 'Core Training';
       case ActivityType.workoutCardio:
-        return 'Cardio';
+        return 'Cardio Workout';
       case ActivityType.workoutYoga:
         return 'Yoga/Flexibility';
+      case ActivityType.walking:
+        return 'Walking';
       case ActivityType.studySerious:
         return 'Serious Study';
       case ActivityType.studyCasual:

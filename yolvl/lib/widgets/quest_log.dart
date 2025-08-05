@@ -25,19 +25,30 @@ class QuestLog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Stack(
       children: [
-        // Background pattern
+        // Background pattern - theme aware
         Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                SoloLevelingColors.midnightBase,
-                SoloLevelingColors.shadowDepth,
-              ],
-            ),
+            gradient: isDark
+                ? LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      SoloLevelingColors.midnightBase,
+                      SoloLevelingColors.shadowDepth,
+                    ],
+                  )
+                : LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      const Color(0xFFFAFAFA),
+                      const Color(0xFFF5F5F5),
+                    ],
+                  ),
           ),
         ),
         
@@ -51,26 +62,45 @@ class QuestLog extends StatelessWidget {
                 margin: const EdgeInsets.all(16),
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      SoloLevelingColors.electricBlue.withValues(alpha: 0.1),
-                      SoloLevelingColors.mysticPurple.withValues(alpha: 0.1),
-                    ],
-                  ),
+                  gradient: isDark
+                      ? LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            SoloLevelingColors.electricBlue.withValues(alpha: 0.1),
+                            SoloLevelingColors.mysticPurple.withValues(alpha: 0.1),
+                          ],
+                        )
+                      : LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            const Color(0xFF1E40AF).withValues(alpha: 0.05),
+                            const Color(0xFF7C3AED).withValues(alpha: 0.05),
+                          ],
+                        ),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: SoloLevelingColors.electricBlue.withValues(alpha: 0.3),
+                    color: isDark
+                        ? SoloLevelingColors.electricBlue.withValues(alpha: 0.3)
+                        : const Color(0xFF1E40AF).withValues(alpha: 0.2),
                     width: 1,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: SoloLevelingColors.electricBlue.withValues(alpha: 0.2),
-                      blurRadius: 12,
-                      spreadRadius: 2,
-                    ),
-                  ],
+                  boxShadow: isDark
+                      ? [
+                          BoxShadow(
+                            color: SoloLevelingColors.electricBlue.withValues(alpha: 0.2),
+                            blurRadius: 12,
+                            spreadRadius: 2,
+                          ),
+                        ]
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                 ),
                 child: Column(
                   children: [
@@ -80,16 +110,22 @@ class QuestLog extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: SoloLevelingColors.electricBlue.withValues(alpha: 0.2),
+                            color: isDark
+                                ? SoloLevelingColors.electricBlue.withValues(alpha: 0.2)
+                                : const Color(0xFF1E40AF).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: SoloLevelingColors.electricBlue.withValues(alpha: 0.4),
+                              color: isDark
+                                  ? SoloLevelingColors.electricBlue.withValues(alpha: 0.4)
+                                  : const Color(0xFF1E40AF).withValues(alpha: 0.3),
                               width: 1,
                             ),
                           ),
                           child: Icon(
                             Icons.book,
-                            color: SoloLevelingColors.electricBlue,
+                            color: isDark
+                                ? SoloLevelingColors.electricBlue
+                                : const Color(0xFF1E40AF),
                             size: 28,
                           ),
                         ),
@@ -103,7 +139,9 @@ class QuestLog extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.w800,
-                                  color: SoloLevelingColors.ghostWhite,
+                                  color: isDark
+                                      ? SoloLevelingColors.ghostWhite
+                                      : const Color(0xFF1F2937),
                                   letterSpacing: 1.0,
                                 ),
                               ),
@@ -111,7 +149,9 @@ class QuestLog extends StatelessWidget {
                                 'Record of completed quests and adventures',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: SoloLevelingColors.silverMist,
+                                  color: isDark
+                                      ? SoloLevelingColors.silverMist
+                                      : const Color(0xFF6B7280),
                                   fontStyle: FontStyle.italic,
                                 ),
                               ),
@@ -127,10 +167,14 @@ class QuestLog extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: SoloLevelingColors.shadowDepth.withValues(alpha: 0.5),
+                        color: isDark
+                            ? SoloLevelingColors.shadowDepth.withValues(alpha: 0.5)
+                            : const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: SoloLevelingColors.silverMist.withValues(alpha: 0.2),
+                          color: isDark
+                              ? SoloLevelingColors.silverMist.withValues(alpha: 0.2)
+                              : const Color(0xFFE5E7EB),
                           width: 1,
                         ),
                       ),
@@ -142,21 +186,27 @@ class QuestLog extends StatelessWidget {
                             icon: Icons.assignment_turned_in,
                             label: 'Completed',
                             value: quests.length.toString(),
-                            color: SoloLevelingColors.hunterGreen,
+                            color: isDark
+                                ? SoloLevelingColors.hunterGreen
+                                : const Color(0xFF059669),
                           ),
                           _buildQuestStat(
                             context,
                             icon: Icons.flash_on,
                             label: 'Total EXP',
                             value: _calculateTotalEXP().toString(),
-                            color: SoloLevelingColors.electricBlue,
+                            color: isDark
+                                ? SoloLevelingColors.electricBlue
+                                : const Color(0xFF1E40AF),
                           ),
                           _buildQuestStat(
                             context,
                             icon: Icons.trending_up,
                             label: 'Progress',
                             value: _getQuestRank(),
-                            color: SoloLevelingColors.goldRank,
+                            color: isDark
+                                ? SoloLevelingColors.goldRank
+                                : const Color(0xFFD97706),
                           ),
                         ],
                       ),
@@ -350,15 +400,17 @@ class QuestLog extends StatelessWidget {
     required String value,
     required Color color,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.2),
+            color: color.withValues(alpha: isDark ? 0.2 : 0.1),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: color.withValues(alpha: 0.4),
+              color: color.withValues(alpha: isDark ? 0.4 : 0.3),
               width: 1,
             ),
           ),
@@ -381,7 +433,9 @@ class QuestLog extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 11,
-            color: SoloLevelingColors.silverMist,
+            color: isDark
+                ? SoloLevelingColors.silverMist
+                : const Color(0xFF6B7280),
             fontWeight: FontWeight.w500,
           ),
         ),

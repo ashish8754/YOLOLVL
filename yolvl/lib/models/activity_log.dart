@@ -114,7 +114,7 @@ class ActivityLog extends HiveObject {
   ActivityType get activityTypeEnum {
     return ActivityType.values.firstWhere(
       (type) => type.name == activityType,
-      orElse: () => ActivityType.workoutWeights,
+      orElse: () => ActivityType.workoutUpperBody,
     );
   }
 
@@ -184,9 +184,21 @@ class ActivityLog extends HiveObject {
     final activityTypeEnum = this.activityTypeEnum;
 
     switch (activityTypeEnum) {
-      case ActivityType.workoutWeights:
+      case ActivityType.workoutUpperBody:
         gains[StatType.strength] = 0.06 * durationHours;
+        gains[StatType.endurance] = 0.03 * durationHours;
+        break;
+
+      case ActivityType.workoutLowerBody:
+        gains[StatType.strength] = 0.05 * durationHours;
+        gains[StatType.agility] = 0.04 * durationHours;
         gains[StatType.endurance] = 0.04 * durationHours;
+        break;
+
+      case ActivityType.workoutCore:
+        gains[StatType.strength] = 0.05 * durationHours;
+        gains[StatType.endurance] = 0.05 * durationHours;
+        gains[StatType.focus] = 0.02 * durationHours;
         break;
 
       case ActivityType.workoutCardio:
@@ -197,6 +209,11 @@ class ActivityLog extends HiveObject {
       case ActivityType.workoutYoga:
         gains[StatType.agility] = 0.05 * durationHours;
         gains[StatType.focus] = 0.03 * durationHours;
+        break;
+
+      case ActivityType.walking:
+        gains[StatType.agility] = 0.03 * durationHours;
+        gains[StatType.endurance] = 0.02 * durationHours;
         break;
 
       case ActivityType.studySerious:

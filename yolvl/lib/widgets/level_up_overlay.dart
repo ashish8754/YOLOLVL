@@ -243,6 +243,7 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
       child: GlassmorphismEffects.systemPanel(
         isActive: true,
         padding: const EdgeInsets.all(16),
+        context: context,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,

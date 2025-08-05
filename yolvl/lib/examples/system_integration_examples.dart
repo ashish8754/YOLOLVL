@@ -326,7 +326,7 @@ class SystemIntegrationExamples {
   // Helper methods
   static String _getActivityDisplayName(ActivityType activityType) {
     switch (activityType) {
-      case ActivityType.workoutWeights:
+      case ActivityType.workoutUpperBody:
         return 'Weight Training';
       case ActivityType.workoutCardio:
         return 'Cardio Workout';

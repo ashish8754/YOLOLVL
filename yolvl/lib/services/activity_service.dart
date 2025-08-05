@@ -31,7 +31,7 @@ import 'stats_service.dart';
 /// 
 /// // Log an activity
 /// final result = await service.logActivity(
-///   activityType: ActivityType.workoutWeights,
+///   activityType: ActivityType.workoutUpperBody,
 ///   durationMinutes: 60,
 /// );
 /// 
@@ -1203,7 +1203,7 @@ class ActivityGainPreview {
 
   factory ActivityGainPreview.invalid(String errorMessage) {
     return ActivityGainPreview(
-      activityType: ActivityType.workoutWeights,
+      activityType: ActivityType.workoutUpperBody,
       durationMinutes: 0,
       statGains: const {},
       expGained: 0.0,

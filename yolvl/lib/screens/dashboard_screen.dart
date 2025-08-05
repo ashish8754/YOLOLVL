@@ -37,16 +37,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _initializeData() async {
     if (_isInitialized) return;
-    
+
     final userProvider = context.read<UserProvider>();
     final activityProvider = context.read<ActivityProvider>();
-    
+
     try {
       // Initialize providers if needed
       if (!userProvider.hasUser) {
         await userProvider.initializeApp();
       }
-      
+
       await activityProvider.initialize();
       _isInitialized = true;
     } catch (e) {
@@ -62,147 +62,162 @@ class _DashboardScreenState extends State<DashboardScreen> {
       newLevel: _celebrationLevel,
       onAnimationComplete: _onLevelUpAnimationComplete,
       child: Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: AppBar(
-        title: const Text(
-          'Solo Leveling',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        appBar: AppBar(
+          title: const Text(
+            'Solo Leveling',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+          elevation: 0,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.person),
+              onPressed: () {
+                // TODO: Navigate to profile screen
+              },
+            ),
+          ],
         ),
-        backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {
-              // TODO: Navigate to profile screen
-            },
-          ),
-        ],
-      ),
-      body: Consumer3<UserProvider, ActivityProvider, AchievementProvider>(
-        builder: (context, userProvider, activityProvider, achievementProvider, child) {
-          if (userProvider.isLoading || activityProvider.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
+        body: Consumer3<UserProvider, ActivityProvider, AchievementProvider>(
+          builder:
+              (
+                context,
+                userProvider,
+                activityProvider,
+                achievementProvider,
+                child,
+              ) {
+                if (userProvider.isLoading || activityProvider.isLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-          if (userProvider.errorMessage != null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Error loading data',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    userProvider.errorMessage!,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () => _initializeData(),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          if (!userProvider.hasUser) {
-            return const Center(
-              child: Text(
-                'No user data found',
-                style: TextStyle(fontSize: 16),
-              ),
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: _refreshData,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(8.0, 8.0, 8.0, 8.0),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight - 16, // Account for padding
-                    ),
+                if (userProvider.errorMessage != null) {
+                  return Center(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Hunter Profile Card - Main hunter info display
-                        HunterProfileCard(
-                          displayMode: HunterProfileDisplayMode.expanded,
-                          onTap: _navigateToProfile,
-                          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: Theme.of(context).colorScheme.error,
                         ),
-                        
-                        // Hunter Achievements Showcase
-                        HunterAchievementsShowcase(
-                          displayMode: HunterAchievementsDisplayMode.showcase,
-                          maxAchievements: 6,
-                          onViewAllTap: _navigateToAchievements,
-                          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                          height: 200,
-                        ),
-                        
-                        // Hunter Stats Panel - Detailed stats view
-                        HunterStatsPanel(
-                          displayMode: HunterStatsPanelMode.overview,
-                          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                          height: 280,
-                        ),
-                        
-                        // Legacy components for backward compatibility
-                        // Can be removed once fully migrated to Hunter components
                         const SizedBox(height: 16),
-                        
-                        // Daily Quest Panel - Quest tracking and management
-                        DailyQuestPanel(
-                          onQuestTap: () => _navigateToQuestLogging(context),
+                        Text(
+                          'Error loading data',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                         ),
-                        
-                        // Stats Overview Chart - Visual stats representation
-                        const SizedBox(height: 16),
-                        const StatsOverviewChart(),
-                        
-                        // Responsive bottom spacing for FAB
-                        SizedBox(height: MediaQuery.of(context).padding.bottom + 80),
+                        const SizedBox(height: 8),
+                        Text(
+                          userProvider.errorMessage!,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton(
+                          onPressed: () => _initializeData(),
+                          child: const Text('Retry'),
+                        ),
                       ],
                     ),
+                  );
+                }
+
+                if (!userProvider.hasUser) {
+                  return const Center(
+                    child: Text(
+                      'No user data found',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  );
+                }
+
+                return RefreshIndicator(
+                  onRefresh: _refreshData,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: SafeArea(
+                          minimum: const EdgeInsets.only(bottom: 16),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(8.0, 8.0, 8.0, 0.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Hunter Profile Card - Main hunter info display
+                                HunterProfileCard(
+                                  displayMode: HunterProfileDisplayMode.expanded,
+                                  onTap: _navigateToProfile,
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                ),
+
+                                // Hunter Achievements Showcase
+                                HunterAchievementsShowcase(
+                                  displayMode:
+                                      HunterAchievementsDisplayMode.showcase,
+                                  maxAchievements: 6,
+                                  onViewAllTap: _navigateToAchievements,
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 8,
+                                  ),
+                                  height: 200,
+                                ),
+
+                                // Hunter Stats Panel - Detailed stats view
+                                HunterStatsPanel(
+                                  displayMode: HunterStatsPanelMode.overview,
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 8,
+                                  ),
+                                  height: 280,
+                                ),
+
+                                // Legacy components for backward compatibility
+                                // Can be removed once fully migrated to Hunter components
+                                const SizedBox(height: 16),
+
+                                // Daily Quest Panel - Quest tracking and management
+                                DailyQuestPanel(
+                                  onQuestTap: () =>
+                                      _navigateToQuestLogging(context),
+                                ),
+
+                                // Stats Overview Chart - Visual stats representation
+                                const SizedBox(height: 16),
+                                const StatsOverviewChart(),
+
+                                // Bottom spacing for FAB
+                                const SizedBox(height: 88),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 );
               },
-            ),
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _navigateToActivityLogging(),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        child: const Icon(Icons.add),
-      ),
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => _navigateToActivityLogging(),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          child: const Icon(Icons.add),
+        ),
       ),
     );
   }
@@ -211,7 +226,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final userProvider = context.read<UserProvider>();
     final activityProvider = context.read<ActivityProvider>();
     final achievementProvider = context.read<AchievementProvider>();
-    
+
     await Future.wait([
       userProvider.refreshUser(),
       activityProvider.refreshAll(),
@@ -221,15 +236,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _navigateToActivityLogging() async {
     final result = await Navigator.of(context).push<ActivityLogResult>(
-      MaterialPageRoute(
-        builder: (context) => const ActivityLoggingScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const ActivityLoggingScreen()),
     );
 
     // If activity was logged successfully, refresh the dashboard
     if (result != null && result.success) {
       await _refreshData();
-      
+
       // Show level up celebration if user leveled up
       if (result.leveledUp) {
         _showLevelUpCelebration(result.newLevel);
@@ -253,9 +266,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _navigateToQuestLogging(BuildContext context) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const ActivityLoggingScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const ActivityLoggingScreen()),
     );
   }
 
@@ -278,10 +289,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _navigateToAchievements() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const AchievementsScreen(),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const AchievementsScreen()));
   }
 }
