@@ -7,6 +7,7 @@ import '../services/activity_service.dart';
 import '../widgets/floating_stat_gain_animation.dart';
 import '../widgets/level_up_celebration.dart';
 import '../widgets/level_up_overlay.dart';
+import '../widgets/quest_completion_dialog.dart';
 
 /// Screen for logging new activities with duration and expected gains preview
 class ActivityLoggingScreen extends StatefulWidget {
@@ -100,18 +101,22 @@ class _ActivityLoggingScreenState extends State<ActivityLoggingScreen> {
           await Future.delayed(const Duration(milliseconds: 3000));
         }
 
-        // Show success feedback and close
+        // Show quest completion dialog
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Activity logged successfully!'),
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              behavior: SnackBarBehavior.floating,
-            ),
+          await showQuestCompletionDialog(
+            context: context,
+            questType: _selectedActivityType,
+            duration: _selectedDuration,
+            expGained: result.expGained!,
+            statGains: result.statGains!,
+            questNotes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+            leveledUp: result.leveledUp,
+            newLevel: result.newLevel,
+            onClose: () {
+              // Close the screen after quest completion dialog
+              Navigator.of(context).pop(result);
+            },
           );
-          
-          // Close the screen
-          Navigator.of(context).pop(result);
         }
       } else {
         // Haptic feedback for error
@@ -121,7 +126,7 @@ class _ActivityLoggingScreenState extends State<ActivityLoggingScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result?.errorMessage ?? 'Failed to log activity'),
+              content: Text(result?.errorMessage ?? 'Failed to complete quest'),
               backgroundColor: Theme.of(context).colorScheme.error,
               behavior: SnackBarBehavior.floating,
             ),
@@ -176,7 +181,7 @@ class _ActivityLoggingScreenState extends State<ActivityLoggingScreen> {
         child: Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: const Text('Log Activity'),
+        title: const Text('Start New Quest'),
         backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
         elevation: 0,
         leading: IconButton(
@@ -191,9 +196,9 @@ class _ActivityLoggingScreenState extends State<ActivityLoggingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Activity Type Selection
+              // Quest Type Selection
               Text(
-                'Activity Type',
+                'Quest Type',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -246,9 +251,9 @@ class _ActivityLoggingScreenState extends State<ActivityLoggingScreen> {
               
               const SizedBox(height: 24),
               
-              // Duration Input
+              // Quest Duration Input
               Text(
-                'Duration (minutes)',
+                'Quest Duration (minutes)',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -323,9 +328,9 @@ class _ActivityLoggingScreenState extends State<ActivityLoggingScreen> {
               
               const SizedBox(height: 24),
               
-              // Notes Input (Optional)
+              // Quest Notes Input (Optional)
               Text(
-                'Notes (Optional)',
+                'Quest Notes (Optional)',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -341,7 +346,7 @@ class _ActivityLoggingScreenState extends State<ActivityLoggingScreen> {
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Add any notes about this activity...',
+                  hintText: 'Add any notes about this quest...',
                   hintStyle: TextStyle(
                     color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
@@ -375,7 +380,7 @@ class _ActivityLoggingScreenState extends State<ActivityLoggingScreen> {
               
               const SizedBox(height: 32),
               
-              // Expected Gains Preview
+              // Expected Quest Rewards Preview
               if (_gainPreview != null && _gainPreview!.isValid) ...[
                 Container(
                   width: double.infinity,
@@ -391,11 +396,13 @@ class _ActivityLoggingScreenState extends State<ActivityLoggingScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Expected Gains:',
+                        'Expected Quest Rewards:',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          color: Theme.of(context).brightness == Brightness.dark 
+                              ? Theme.of(context).colorScheme.onSurface
+                              : Theme.of(context).colorScheme.onPrimaryContainer,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -417,9 +424,12 @@ class _ActivityLoggingScreenState extends State<ActivityLoggingScreen> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text(
+                                  Icon(
                                     statType.icon,
-                                    style: const TextStyle(fontSize: 16),
+                                    size: 16,
+                                    color: Theme.of(context).brightness == Brightness.dark 
+                                        ? Theme.of(context).colorScheme.onSurface
+                                        : Theme.of(context).colorScheme.onPrimaryContainer,
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
@@ -427,7 +437,9 @@ class _ActivityLoggingScreenState extends State<ActivityLoggingScreen> {
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
-                                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                      color: Theme.of(context).brightness == Brightness.dark 
+                                          ? Theme.of(context).colorScheme.onSurface
+                                          : Theme.of(context).colorScheme.onPrimaryContainer,
                                     ),
                                   ),
                                 ],
@@ -456,7 +468,9 @@ class _ActivityLoggingScreenState extends State<ActivityLoggingScreen> {
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
-                                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                    color: Theme.of(context).brightness == Brightness.dark 
+                                        ? Theme.of(context).colorScheme.onSurface
+                                        : Theme.of(context).colorScheme.onPrimaryContainer,
                                   ),
                                 ),
                               ],
@@ -520,7 +534,7 @@ class _ActivityLoggingScreenState extends State<ActivityLoggingScreen> {
                               ),
                             )
                           : Text(
-                              'Log Activity',
+                              'Complete Quest',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,

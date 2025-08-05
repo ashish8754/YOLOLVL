@@ -292,7 +292,7 @@ class _StatsOverviewChartState extends State<StatsOverviewChart>
                                       return Padding(
                                         padding: const EdgeInsets.only(top: 8.0),
                                         child: Text(
-                                          _showDetailed ? statType.displayName.substring(0, 3) : statType.icon,
+                                          _showDetailed ? statType.displayName.substring(0, 3) : statType.emojiIcon,
                                           style: TextStyle(
                                             fontSize: _showDetailed ? 10 : 16,
                                             fontWeight: _showDetailed ? FontWeight.w500 : FontWeight.normal,
@@ -374,12 +374,23 @@ class _StatsOverviewChartState extends State<StatsOverviewChart>
                               ),
                             ),
                             const SizedBox(width: 4),
-                            Text(
-                              '${statType.icon} ${_formatStatValue(value)}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
-                              ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  statType.icon,
+                                  size: 12,
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _formatStatValue(value),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         );
@@ -407,7 +418,7 @@ class _StatsOverviewChartState extends State<StatsOverviewChart>
                                     ),
                                     child: Center(
                                       child: Text(
-                                        statType.icon,
+                                        statType.emojiIcon,
                                         style: const TextStyle(fontSize: 10, color: Colors.white),
                                       ),
                                     ),
