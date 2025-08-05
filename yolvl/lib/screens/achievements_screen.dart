@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/achievement.dart';
 import '../providers/achievement_provider.dart';
+import '../providers/user_provider.dart';
 import '../widgets/achievement_card.dart';
 import '../widgets/achievement_progress_card.dart';
 
@@ -23,8 +24,15 @@ class _AchievementsScreenState extends State<AchievementsScreen>
     _tabController = TabController(length: 2, vsync: this);
     
     // Load achievements when screen opens
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AchievementProvider>().loadAchievements();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final achievementProvider = context.read<AchievementProvider>();
+      await achievementProvider.loadAchievements();
+      
+      // Also load progress if we have user context
+      final userProvider = context.read<UserProvider>();
+      if (userProvider.hasUser) {
+        await achievementProvider.loadAchievementProgress(userProvider.currentUser!);
+      }
     });
   }
 
@@ -226,9 +234,35 @@ class _AchievementsScreenState extends State<AchievementsScreen>
   Widget _buildProgressTab(BuildContext context, AchievementProvider provider) {
     final progressList = provider.achievementProgress;
 
-    if (progressList.isEmpty) {
+    if (provider.isLoading) {
       return const Center(
         child: CircularProgressIndicator(),
+      );
+    }
+
+    if (progressList.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.trending_up,
+              size: 64,
+              color: Theme.of(context).colorScheme.outline,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No progress data',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Start logging activities to track your achievement progress!',
+              style: Theme.of(context).textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       );
     }
 

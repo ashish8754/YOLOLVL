@@ -91,11 +91,9 @@ class MainNavigationScreen extends StatefulWidget {
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen>
-    with TickerProviderStateMixin {
+class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
   late final AppLifecycleService _appLifecycleService;
-  late AnimationController _tabAnimationController;
   
   late final List<Widget> _screens;
 
@@ -103,11 +101,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
   void initState() {
     super.initState();
     _appLifecycleService = AppLifecycleService();
-    _tabAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _tabAnimationController.forward();
     
     _screens = [
       DashboardScreenContent(appLifecycleService: _appLifecycleService),
@@ -121,7 +114,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
   @override
   void dispose() {
     _appLifecycleService.dispose();
-    _tabAnimationController.dispose();
     super.dispose();
   }
 
@@ -137,23 +129,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
         child: AnimatedSwitcher(
           duration: isReducedMotion 
               ? Duration.zero 
-              : const Duration(milliseconds: 300),
+              : const Duration(milliseconds: 250), // Slightly faster for snappier feel
+          switchInCurve: Curves.fastOutSlowIn, // Optimized curve for mobile
+          switchOutCurve: Curves.fastOutSlowIn,
           transitionBuilder: (Widget child, Animation<double> animation) {
             if (isReducedMotion) {
               return child;
             }
+            // Use only fade transition for better performance
             return FadeTransition(
               opacity: animation,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0.1, 0.0),
-                  end: Offset.zero,
-                ).animate(CurvedAnimation(
-                  parent: animation,
-                  curve: Curves.easeInOutCubic,
-                )),
-                child: child,
-              ),
+              child: child,
             );
           },
           child: Container(
@@ -172,11 +158,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
 
   void _onTabTapped(int index) {
     if (index != _currentIndex) {
-      _tabAnimationController.reset();
       setState(() {
         _currentIndex = index;
       });
-      _tabAnimationController.forward();
+      // AnimatedSwitcher handles the animation automatically
     }
   }
 
@@ -412,6 +397,12 @@ class _DashboardScreenContentState extends State<DashboardScreenContent> {
       
       await activityProvider.initialize();
       await achievementProvider.loadAchievements();
+      
+      // Load achievement progress with user context
+      if (userProvider.hasUser) {
+        await achievementProvider.loadAchievementProgress(userProvider.currentUser!);
+      }
+      
       _isInitialized = true;
     } catch (e) {
       debugPrint('Error initializing dashboard: $e');
