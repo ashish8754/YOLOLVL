@@ -8,6 +8,7 @@ import '../services/app_lifecycle_service.dart';
 import '../repositories/activity_repository.dart';
 import '../repositories/user_repository.dart';
 import '../providers/achievement_provider.dart';
+import '../providers/settings_provider.dart';
 
 /// Provider for managing activity logging, history, and deletion with stat reversal
 /// 
@@ -90,9 +91,11 @@ class ActivityProvider extends ChangeNotifier {
   ActivityProvider({
     ActivityService? activityService,
     AppLifecycleService? appLifecycleService,
+    SettingsProvider? settingsProvider,
   }) : _activityService = activityService ?? ActivityService(
           activityRepository: ActivityRepository(),
           userRepository: UserRepository(),
+          settingsProvider: settingsProvider,
         ),
        _appLifecycleService = appLifecycleService {
     // Listen to app lifecycle changes if service is provided

@@ -5,6 +5,7 @@ import '../models/enums.dart';
 import '../models/user.dart';
 import '../repositories/activity_repository.dart';
 import '../repositories/user_repository.dart';
+import '../providers/settings_provider.dart';
 import 'exp_service.dart';
 import 'stats_service.dart';
 
@@ -44,12 +45,15 @@ import 'stats_service.dart';
 class ActivityService {
   final ActivityRepository _activityRepository;
   final UserRepository _userRepository;
+  final SettingsProvider? _settingsProvider;
 
   ActivityService({
     ActivityRepository? activityRepository,
     UserRepository? userRepository,
+    SettingsProvider? settingsProvider,
   })  : _activityRepository = activityRepository ?? ActivityRepository(),
-        _userRepository = userRepository ?? UserRepository();
+        _userRepository = userRepository ?? UserRepository(),
+        _settingsProvider = settingsProvider;
 
   /// Log an activity for the current user
   /// Returns ActivityLogResult with success status and level-up information
@@ -72,8 +76,8 @@ class ActivityService {
         return ActivityLogResult.error('No user found. Please complete onboarding first.');
       }
 
-      // Calculate gains
-      final statGains = StatsService.calculateStatGains(activityType, durationMinutes);
+      // Calculate gains (with custom increments if available)
+      final statGains = _calculateStatGainsWithCustomSettings(activityType, durationMinutes);
       final expGain = _calculateEXPGain(activityType, durationMinutes);
 
       // Create activity log
@@ -701,7 +705,7 @@ class ActivityService {
       return ActivityGainPreview.invalid(validationResult.errorMessage!);
     }
 
-    final statGains = StatsService.calculateStatGains(activityType, durationMinutes);
+    final statGains = _calculateStatGainsWithCustomSettings(activityType, durationMinutes);
     final expGain = _calculateEXPGain(activityType, durationMinutes);
 
     return ActivityGainPreview(
@@ -731,6 +735,38 @@ class ActivityService {
     }
 
     return ActivityValidationResult.valid();
+  }
+
+  /// Calculate stat gains with custom settings if available
+  Map<StatType, double> _calculateStatGainsWithCustomSettings(
+    ActivityType activityType,
+    int durationMinutes,
+  ) {
+    // Get default stat gains first
+    final defaultGains = StatsService.calculateStatGains(activityType, durationMinutes);
+    
+    // If no settings provider or no custom increments, return defaults
+    if (_settingsProvider == null) {
+      return defaultGains;
+    }
+    
+    // Apply custom increments if available
+    final customGains = <StatType, double>{};
+    final durationHours = durationMinutes / 60.0;
+    
+    for (final statType in StatType.values) {
+      final customIncrement = _settingsProvider!.getCustomStatIncrement(activityType, statType);
+      
+      if (customIncrement != null) {
+        // Use custom increment per hour
+        customGains[statType] = customIncrement * durationHours;
+      } else if (defaultGains.containsKey(statType)) {
+        // Use default gain if no custom increment is set
+        customGains[statType] = defaultGains[statType]!;
+      }
+    }
+    
+    return customGains.isNotEmpty ? customGains : defaultGains;
   }
 
   /// Calculate EXP gain based on activity type and duration

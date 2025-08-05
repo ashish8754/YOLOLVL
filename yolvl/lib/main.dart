@@ -33,8 +33,15 @@ class YolvlApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => UserProvider()),
-        ChangeNotifierProvider(create: (_) => ActivityProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ChangeNotifierProxyProvider<SettingsProvider, ActivityProvider>(
+          create: (context) => ActivityProvider(
+            settingsProvider: context.read<SettingsProvider>(),
+          ),
+          update: (context, settingsProvider, previous) => previous ?? ActivityProvider(
+            settingsProvider: settingsProvider,
+          ),
+        ),
         ChangeNotifierProvider(create: (_) => AchievementProvider()),
         ChangeNotifierProvider(create: (_) => DailyLoginProvider()),
       ],

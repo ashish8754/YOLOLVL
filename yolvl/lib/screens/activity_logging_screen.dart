@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/enums.dart';
 import '../providers/activity_provider.dart';
+import '../providers/settings_provider.dart';
 import '../services/activity_service.dart';
 import '../widgets/floating_stat_gain_animation.dart';
 import '../widgets/level_up_celebration.dart';
@@ -46,8 +47,9 @@ class _ActivityLoggingScreenState extends State<ActivityLoggingScreen> {
   }
 
   void _updateGainPreview() {
-    // Create a temporary activity service to calculate gains
-    final activityService = ActivityService();
+    // Create a temporary activity service to calculate gains with settings
+    final settingsProvider = context.read<SettingsProvider>();
+    final activityService = ActivityService(settingsProvider: settingsProvider);
     setState(() {
       _gainPreview = activityService.calculateExpectedGains(
         activityType: _selectedActivityType,

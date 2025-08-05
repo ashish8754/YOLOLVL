@@ -103,8 +103,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 24),
                 _buildAccessibilitySection(settingsProvider),
                 const SizedBox(height: 24),
-                _buildActivitySection(settingsProvider),
-                const SizedBox(height: 24),
                 _buildCustomStatsSection(settingsProvider),
                 const SizedBox(height: 24),
                 _buildGameplaySection(settingsProvider),
@@ -142,33 +140,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildActivitySection(SettingsProvider settingsProvider) {
-    return _buildSection(
-      title: 'Activities',
-      icon: Icons.fitness_center,
-      children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Text(
-            'Enable or disable specific activities for logging',
-            style: TextStyle(fontSize: 14, color: Colors.grey),
-          ),
-        ),
-        ...ActivityType.values.map((activityType) {
-          return SwitchListTile(
-            title: Text(activityType.displayName),
-            subtitle: Text(_getActivityDescription(activityType)),
-            value: settingsProvider.isActivityEnabled(activityType),
-            onChanged: (value) => settingsProvider.setActivityEnabled(activityType, value),
-            secondary: Icon(
-              activityType.icon,
-              color: activityType.color,
-            ),
-          );
-        }),
-      ],
-    );
-  }
 
   Widget _buildCustomStatsSection(SettingsProvider settingsProvider) {
     return _buildSection(
@@ -182,7 +153,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: TextStyle(fontSize: 14, color: Colors.grey),
           ),
         ),
-        ...ActivityType.values.where((activity) => settingsProvider.isActivityEnabled(activity)).map((activityType) {
+        ...ActivityType.values.map((activityType) {
           return _buildCustomStatTile(activityType, settingsProvider);
         }),
         if (settingsProvider.hasCustomStatIncrements()) ...[
@@ -559,11 +530,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  String _getActivityDescription(ActivityType activityType) {
-    final defaultGains = StatsService.getDefaultStatGains(activityType);
-    final statNames = defaultGains.keys.map((stat) => stat.displayName).join(', ');
-    return 'Affects: $statNames';
-  }
 
   Future<void> _showTimePicker(SettingsProvider settingsProvider) async {
     final TimeOfDay? picked = await showTimePicker(
