@@ -26,11 +26,18 @@ class _AchievementsScreenState extends State<AchievementsScreen>
     // Load achievements when screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final achievementProvider = context.read<AchievementProvider>();
+      final userProvider = context.read<UserProvider>();
+      
       await achievementProvider.loadAchievements();
       
-      // Also load progress if we have user context
-      final userProvider = context.read<UserProvider>();
+      // Also load progress and check for unlocks if we have user context
       if (userProvider.hasUser) {
+        // Check for any achievements that should be unlocked
+        await achievementProvider.checkAndUnlockAchievements(
+          user: userProvider.currentUser!,
+        );
+        
+        // Load progress after checking for unlocks
         await achievementProvider.loadAchievementProgress(userProvider.currentUser!);
       }
     });

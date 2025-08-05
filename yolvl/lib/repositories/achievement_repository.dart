@@ -63,7 +63,10 @@ class AchievementRepository extends BaseRepository<Achievement> {
         metadata: metadata,
       );
 
-      await save(achievement);
+      // Add to box first, then save
+      box.add(achievement);
+      await achievement.save();
+      
       return achievement;
     } catch (e) {
       throw Exception('Failed to unlock achievement: $e');

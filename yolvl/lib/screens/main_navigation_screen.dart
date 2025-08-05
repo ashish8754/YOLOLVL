@@ -391,6 +391,20 @@ class _DashboardScreenContentState extends State<DashboardScreenContent> {
         settingsProvider.sendStreakNotification(streakDays);
       });
       
+      // Set up achievement checking callback
+      activityProvider.setAchievementUnlockedCallback((achievements) async {
+        if (userProvider.hasUser) {
+          final newAchievements = await achievementProvider.checkAndUnlockAchievements(
+            user: userProvider.currentUser!,
+          );
+          
+          // Refresh achievement progress after checking
+          if (newAchievements.isNotEmpty) {
+            await achievementProvider.loadAchievementProgress(userProvider.currentUser!);
+          }
+        }
+      });
+      
       if (!userProvider.hasUser) {
         await userProvider.initializeApp();
       }

@@ -7,6 +7,7 @@ import '../services/activity_service.dart';
 import '../services/app_lifecycle_service.dart';
 import '../repositories/activity_repository.dart';
 import '../repositories/user_repository.dart';
+import '../providers/achievement_provider.dart';
 
 /// Provider for managing activity logging, history, and deletion with stat reversal
 /// 
@@ -163,6 +164,16 @@ class ActivityProvider extends ChangeNotifier {
           final streak = await getActivityStreak(result.activityLog!.activityTypeEnum);
           if (streak > 0 && (streak % 7 == 0 || streak % 30 == 0) && _onStreakMilestone != null) {
             _onStreakMilestone!(streak);
+          }
+        }
+        
+        // Check for achievement unlocks
+        if (result.activityLog != null && _onAchievementsUnlocked != null) {
+          try {
+            // This will be handled by the callback to AchievementProvider
+            _onAchievementsUnlocked!([]);
+          } catch (e) {
+            debugPrint('Error checking achievements: $e');
           }
         }
         
